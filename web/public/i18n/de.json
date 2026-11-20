@@ -4,16 +4,14 @@
   },
   "shell": {
     "skipToContent": "Zum Inhalt springen",
-    "signOut": "Abmelden"
+    "signOut": "Abmelden",
+    "nav": "Hauptmenü",
+    "browse": "Entdecken",
+    "admin": "Verwaltung"
   },
   "home": {
     "title": "Start",
-    "heading": "Willkommen",
-    "api": {
-      "checking": "Verbindung zum Server wird geprüft…",
-      "reachable": "Mit dem Server verbunden.",
-      "unreachable": "Der Server ist gerade nicht erreichbar. Bitte versuche es später erneut."
-    }
+    "heading": "Entdecken"
   },
   "signin": {
     "title": "Anmelden",
@@ -23,7 +21,108 @@
     "error": {
       "failed": "Die Anmeldung hat nicht geklappt. Bitte versuche es erneut.",
       "denied": "Dein Konto hat keinen Zugang zu r16a-stream. Bitte eine Administratorin oder einen Administrator, dich hinzuzufügen.",
-      "unavailable": "Der Server ist gerade nicht erreichbar. Bitte versuche es später erneut."
+      "unavailable": "Der Server ist gerade nicht erreichbar. Bitte versuche es später erneut.",
+      "setup": "Die Anmeldung ist noch nicht richtig eingerichtet. Bitte informiere eine Administratorin oder einen Administrator und nenne die Referenz unten."
+    },
+    "reference": "Referenz"
+  },
+  "catalog": {
+    "kind": {
+      "movie": "Film",
+      "show": "Serie"
+    },
+    "search": {
+      "label": "Suche",
+      "button": "Suchen"
+    },
+    "filter": {
+      "type": "Art",
+      "genre": "Genre",
+      "sort": "Sortierung",
+      "all": "Alle"
+    },
+    "sort": {
+      "recent": "Zuletzt hinzugefügt",
+      "az": "A bis Z"
+    },
+    "loading": "Wird geladen…",
+    "error": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+    "empty": "Hier ist noch nichts.",
+    "results": "Titel",
+    "more": "Mehr anzeigen"
+  },
+  "title": {
+    "pageTitle": "Titel",
+    "missing": "Diesen Titel gibt es nicht oder er ist nicht verfügbar.",
+    "runtime": "{{minutes}} Min.",
+    "genres": "Genres",
+    "credits": "Besetzung und Stab",
+    "role": {
+      "cast": "Besetzung",
+      "director": "Regie",
+      "creator": "Idee",
+      "writer": "Drehbuch"
+    },
+    "episodes": "Folgen",
+    "seasons": "Staffeln",
+    "specials": "Specials",
+    "season": "Staffel {{number}}",
+    "episode": "Folge {{number}}"
+  },
+  "admin": {
+    "titles": {
+      "heading": "Titel",
+      "new": "Neuer Titel",
+      "edit": "Titel bearbeiten"
+    },
+    "status": {
+      "label": "Status",
+      "draft": "Entwurf",
+      "published": "Veröffentlicht"
+    },
+    "field": {
+      "name": "Name",
+      "originalName": "Originalname",
+      "kind": "Art",
+      "year": "Jahr",
+      "runtime": "Laufzeit in Minuten",
+      "overview": "Inhalt",
+      "number": "Nummer"
+    },
+    "tmdb": {
+      "ref": "TMDB-Link oder -ID",
+      "kind": "Art bei einer ID",
+      "fromLink": "Aus dem Link",
+      "lookup": "Nachschlagen"
+    },
+    "draft": {
+      "structure": "{seasons, plural, one {# Staffel} other {# Staffeln}} mit {episodes, plural, one {# Folge} other {# Folgen}} werden angelegt."
+    },
+    "saveDraft": "Als Entwurf speichern",
+    "save": "Speichern",
+    "saved": "Gespeichert.",
+    "publish": "Veröffentlichen",
+    "unpublish": "Zurückziehen",
+    "delete": "Löschen",
+    "remove": "Entfernen",
+    "confirmDelete": "Endgültig löschen? Das lässt sich nicht rückgängig machen.",
+    "addSeason": "Staffel hinzufügen",
+    "addEpisode": "Folge hinzufügen",
+    "back": "Zurück zu den Titeln",
+    "error": {
+      "notFound": "Nicht gefunden.",
+      "conflict": "Das gibt es schon.",
+      "invalid": "Bitte prüfe die Felder.",
+      "tooMany": "Zu viele Anfragen, bitte kurz warten.",
+      "unavailable": "TMDB ist gerade nicht erreichbar."
+    },
+    "images": {
+      "heading": "Bilder",
+      "poster": "Poster von TMDB",
+      "backdrop": "Hintergrund von TMDB",
+      "note": "Bilder werden beim Speichern geladen und erscheinen, sobald sie verarbeitet sind.",
+      "removePoster": "Poster entfernen",
+      "removeBackdrop": "Hintergrund entfernen"
     }
   }
 }

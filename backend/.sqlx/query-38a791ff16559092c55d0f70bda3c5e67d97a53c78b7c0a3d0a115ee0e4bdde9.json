@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update sessions set refresh_token_enc = $2, key_id = $3 where id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bytea",
+        "Int2"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "38a791ff16559092c55d0f70bda3c5e67d97a53c78b7c0a3d0a115ee0e4bdde9"
+}

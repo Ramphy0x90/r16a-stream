@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select title_id from seasons where id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "title_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "seasons",
+            "name": "title_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0bfcfd36e9a10d19cdb93e824f30af201facb514efd28fede2827c694c87499c"
+}

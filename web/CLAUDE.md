@@ -1,6 +1,6 @@
 # web
 
-**Phase 2 done** (2026-11-20). Shell, theme, i18n, nginx with the CSP, API types, CSP check, sign-in through the BFF.
+**Phase 3 done** (2026-11-20). Shell, theme, i18n, nginx with the CSP, API types, sign-in through the BFF, browse and search, title page, admin catalog editor.
 
 The r16a-stream web client. Angular 22.2, TypeScript 6.0, standalone, signals, zoneless, OnPush, SCSS, Vitest through the Angular CLI. Served by nginx with a strict CSP. Architecture in `docs/SPEC.md` section 11.
 
@@ -18,8 +18,14 @@ The r16a-stream web client. Angular 22.2, TypeScript 6.0, standalone, signals, z
 - Filters and sort live in the URL query string. Lists use keyset cursors and infinite scroll.
 - The admin guard is UX only. The API enforces admin rights.
 - API types come from `docs/openapi.json` through `openapi-typescript`. Never hand-write a DTO type.
+- No `@angular/forms`. Inputs bind to signals with `(input)` and `[value]`, form submits read `FormData`. Admin edits send only changed fields as one PATCH (DECISIONS 077).
+- Global `.btn`, `.btn-primary`, `.btn-danger`, `.field` and `.error-text` live in `styles.scss`. Components add layout only.
+- Images come from the API as `ImageSet` and render through `app-picture` (AVIF, WebP fallback, lazy, placeholder colour). Image URLs are same-origin bucket paths, allowed by `img-src 'self'`.
+- Infinite lists use `appInView` on a sentinel plus a visible "Show more" button, never scroll listeners.
+- Guards inject everything before their first `await`, `inject()` fails after it.
+- Admin routes take `adminGuard`. Confirmations are translated in the component with `TranslocoService`, pipes are not allowed in event bindings.
 - Sign-in is a full-page navigation to `/api/v1/auth/login?returnTo=`, never an XHR. The session is an HttpOnly cookie, scripts never see it. `SessionService` knows only what `/api/v1/me` answers, and full-page navigation goes through the `NAVIGATOR` token so tests can replace it.
-- Routes that need a user take `authGuard`. A 401 from any API call except `/me` sends the user to `/signin?returnTo=` through `unauthorizedInterceptor`. The BFF sends failed logins to `/signin?error=failed` or `error=denied`, and the guard uses `error=unavailable` when the API cannot be reached.
+- Routes that need a user take `authGuard`. A 401 from any API call except `/me` sends the user to `/signin?returnTo=` through `unauthorizedInterceptor`. The BFF sends failed logins to `/signin?error=failed` or `error=denied`, setup problems in Authentik to `error=setup&ref=<request id>`, and the guard uses `error=unavailable` when the API cannot be reached. The page shows the reference only in the 32-hex request id format, never other text from the URL.
 
 ## i18n, supported ICU subset
 
@@ -45,7 +51,7 @@ Per-response nonce from nginx in the header and in `ngCspNonce`, `index.html` is
 
 - `ng serve` listens on `localhost`, which resolves to `::1`. Use http://localhost:4200, not 127.0.0.1.
 - npm 11.20 blocks dependency install scripts by default. `lmdb` and `msgpackr-extract` from the Angular build tools are left unapproved and fall back to JavaScript.
-- Playwright 1.65.1 needs Chromium build 1255 (`npx playwright install --only-shell chromium`).
+- Playwright 1.65.0 needs Chromium build 1254 (`npx playwright install --only-shell chromium`).
 
 From Zaltys, expected to apply
 

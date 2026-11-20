@@ -200,7 +200,8 @@ pub async fn touch_session(db: &PgPool, id: Uuid) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
-pub struct LockedSession {
+/// What a request needs to refresh a session after it won the refresh lease.
+pub struct ClaimedRefresh {
     pub is_admin: bool,
     pub refresh_token_enc: Vec<u8>,
     pub key_id: i16,
@@ -209,20 +210,30 @@ pub struct LockedSession {
     pub subject: String,
 }
 
-/// Locks the session row for a claim refresh. Concurrent requests of the same session wait
-/// here, then see the fresh `claims_refreshed_at` and skip their own refresh.
-pub async fn lock_session(db: &mut PgConnection, id: Uuid) -> Result<Option<LockedSession>, sqlx::Error> {
+/// Takes the refresh lease of a session whose claims are stale, in one statement. Returns
+/// `None` when the claims are fresh again or another request or replica holds the lease, so
+/// exactly one refresh runs per session (T-AUTH-14). No lock outlives the statement.
+pub async fn claim_refresh(
+    db: &PgPool,
+    id: Uuid,
+    max_age_secs: f64,
+    lease_secs: f64,
+) -> Result<Option<ClaimedRefresh>, sqlx::Error> {
     let r = sqlx::query!(
-        "select s.is_admin, s.refresh_token_enc, s.key_id, s.user_id, u.oidc_subject,
-                extract(epoch from now() - s.claims_refreshed_at)::float8 as \"claims_age_secs!\"
-         from sessions s join users u on u.id = s.user_id
-         where s.id = $1
-         for update of s",
+        "update sessions s set refresh_lease_until = now() + make_interval(secs => $3)
+         from users u
+         where s.id = $1 and u.id = s.user_id
+           and s.claims_refreshed_at < now() - make_interval(secs => $2)
+           and (s.refresh_lease_until is null or s.refresh_lease_until < now())
+         returning s.is_admin, s.refresh_token_enc, s.key_id, s.user_id, u.oidc_subject,
+                   extract(epoch from now() - s.claims_refreshed_at)::float8 as \"claims_age_secs!\"",
         id,
+        max_age_secs,
+        lease_secs,
     )
     .fetch_optional(db)
     .await?;
-    Ok(r.map(|r| LockedSession {
+    Ok(r.map(|r| ClaimedRefresh {
         is_admin: r.is_admin,
         refresh_token_enc: r.refresh_token_enc,
         key_id: r.key_id,
@@ -232,18 +243,41 @@ pub async fn lock_session(db: &mut PgConnection, id: Uuid) -> Result<Option<Lock
     }))
 }
 
+/// Stores the rotated refresh token and the new admin flag and releases the lease. Returns
+/// false when the session was deleted meanwhile, by logout or revocation, in which case the
+/// caller revokes the new token instead of keeping it.
 pub async fn store_refreshed(
     db: &mut PgConnection,
     id: Uuid,
     is_admin: bool,
     refresh_token_enc: &[u8],
     key_id: i16,
-) -> Result<(), sqlx::Error> {
-    sqlx::query!(
-        "update sessions set is_admin = $2, refresh_token_enc = $3, key_id = $4, claims_refreshed_at = now()
+) -> Result<bool, sqlx::Error> {
+    let r = sqlx::query!(
+        "update sessions set is_admin = $2, refresh_token_enc = $3, key_id = $4, claims_refreshed_at = now(),
+                refresh_lease_until = null
          where id = $1",
         id,
         is_admin,
+        refresh_token_enc,
+        key_id,
+    )
+    .execute(db)
+    .await?;
+    Ok(r.rows_affected() == 1)
+}
+
+/// Keeps a rotated refresh token whose claims could not be read, without marking the claims
+/// fresh, and releases the lease only after its normal expiry.
+pub async fn store_rotated_only(
+    db: &PgPool,
+    id: Uuid,
+    refresh_token_enc: &[u8],
+    key_id: i16,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "update sessions set refresh_token_enc = $2, key_id = $3 where id = $1",
+        id,
         refresh_token_enc,
         key_id,
     )
@@ -290,6 +324,14 @@ pub async fn end_session(db: &PgPool, id: Uuid, user_id: Uuid) -> Result<Option<
         refresh_token_enc: r.refresh_token_enc,
         key_id: r.key_id,
     }))
+}
+
+/// Login flows not yet expired. Bounded, because every `GET /auth/login` writes one.
+pub async fn count_live_flows(db: &PgPool) -> Result<i64, sqlx::Error> {
+    let n = sqlx::query_scalar!("select count(*) as \"n!\" from oidc_flows where expires_at > now()")
+        .fetch_one(db)
+        .await?;
+    Ok(n)
 }
 
 /// Removes expired sessions and flows. Returns how many sessions went.

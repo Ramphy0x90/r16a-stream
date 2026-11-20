@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select person_name, character, role from title_credits where title_id = $1\n         order by case role when 'director' then 0 when 'creator' then 1 when 'writer' then 2 else 3 end, ord",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "person_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "title_credits",
+            "name": "person_name"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "character",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "title_credits",
+            "name": "character"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "role",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "title_credits",
+            "name": "role"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "577fe082c63859c2a34c8063099bccbecf7e51f8695f17303a74e3982b65dbc9"
+}

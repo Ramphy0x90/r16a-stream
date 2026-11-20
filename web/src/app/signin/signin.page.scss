@@ -12,6 +12,19 @@
   color: var(--text);
 }
 
+.message p {
+  margin: 0;
+
+  & + p {
+    margin-top: 8px;
+  }
+}
+
+.reference {
+  font-family: ui-monospace, monospace;
+  overflow-wrap: anywhere;
+}
+
 .primary {
   justify-self: start;
   min-height: 44px;

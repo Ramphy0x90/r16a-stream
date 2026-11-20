@@ -2,7 +2,7 @@
 
 A private, self-hosted streaming platform for movies and TV shows, for the members of one Authentik group. Rust API and transcode worker on PostgreSQL 15 and Garage (S3), an Angular web app and a Flutter mobile app. "r16a-stream" is a working name.
 
-Status: **Phase 2 (auth)**. The stack starts end to end in both local modes, with health checks, security headers, the strict CSP, the design tokens, CI, and sign-in through Authentik on web (BFF with an HttpOnly session cookie) and mobile (PKCE in the system browser). Catalog, upload, playback and the user features arrive in Phases 3 to 8. The plan and every decision are in [`docs/`](docs/).
+Status: **Phase 3 (catalog)**. The stack starts end to end in both local modes, with health checks, security headers, the strict CSP, the design tokens, CI, and sign-in through Authentik on web (BFF with an HttpOnly session cookie) and mobile (PKCE in the system browser). Members browse and search the catalog, admins create titles by hand or from a TMDB link with its poster and backdrop. Upload, playback and the user features arrive in Phases 4 to 8. The plan and every decision are in [`docs/`](docs/).
 
 ## What you need locally, and why
 
@@ -41,7 +41,7 @@ Infrastructure in Docker, the apps natively. This is the daily workflow.
    ```
    docker compose -f deploy/compose/docker-compose.dev.yml up -d
    ```
-2. Configure the backend. The example holds only published dev-only values, which the backend refuses outside development. Signing in needs the `r16a-stream-dev` and `r16a-stream-mobile-dev` providers on your Authentik (`docs/OPERATING.md` section 3.1). Put their issuer URLs and the dev client secret into `backend/.env`. The API refuses to start without them, because a login that silently does not work is worse than a clear error.
+2. Configure the backend. The example holds only published dev-only values, which the backend refuses outside development. Signing in needs the `r16a-stream-dev` and `r16a-stream-mobile-dev` providers on your Authentik (`docs/OPERATING.md` section 3.1). Put their issuer URLs and the dev client secret into `backend/.env`, and a TMDB v4 read access token as `R16A_TMDB_TOKEN` (themoviedb.org, Settings, API), which the admin's title lookup uses. The API refuses to start without them, because a login that silently does not work is worse than a clear error.
    ```
    cp backend/.env.example backend/.env
    ```
@@ -85,6 +85,7 @@ The worker sits on internal networks only, so ffmpeg has no internet access. Sto
 | CSP in a real browser | `cd web && npx playwright test e2e/csp.spec.ts` against the nginx container |
 | Tokens and contrast | `npm run tokens:check && npm run contrast:check` |
 | Comment rule | `npm run check:comments` |
+| Hot query bench | `cd backend && cargo run --bin api -- seed --bench` (development only, see `docs/perf/queries.md`) |
 | Mobile | `cd mobile && fvm flutter analyze && fvm flutter test` |
 
 ## Repository map

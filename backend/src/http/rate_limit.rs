@@ -47,6 +47,32 @@ impl<K: Hash + Eq + Clone> KeyedLimit<K> {
     }
 }
 
+/// Per-user limits of individual features (SPEC 16). Login and the general per-user limit live
+/// with authentication.
+#[derive(Debug)]
+pub struct FeatureLimits {
+    /// Requests with `q`, 60 per minute, burst 20.
+    pub search: KeyedLimit<uuid::Uuid>,
+    /// `GET /admin/tmdb/lookup`, 30 per minute, burst 10.
+    pub tmdb: KeyedLimit<uuid::Uuid>,
+}
+
+impl Default for FeatureLimits {
+    fn default() -> Self {
+        Self {
+            search: KeyedLimit::per_minute(60, 20),
+            tmdb: KeyedLimit::per_minute(30, 10),
+        }
+    }
+}
+
+impl FeatureLimits {
+    pub fn shrink(&self) {
+        self.search.shrink();
+        self.tmdb.shrink();
+    }
+}
+
 /// How often idle limiter entries are dropped.
 pub const SHRINK_INTERVAL: Duration = Duration::from_secs(300);
 

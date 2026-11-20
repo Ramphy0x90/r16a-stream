@@ -19,3 +19,22 @@ fn committed_openapi_document_is_current() {
         "docs/openapi.json is stale, run R16A_WRITE_OPENAPI=1 cargo test --test openapi"
     );
 }
+
+/// Query structs must say so, utoipa otherwise declares their fields as path parameters, which
+/// broke model generation for the app once.
+#[test]
+fn every_path_parameter_appears_in_its_route() {
+    let doc: serde_json::Value = serde_json::from_str(&r16a_stream_backend::openapi::to_json().unwrap()).unwrap();
+    let mut wrong = Vec::new();
+    for (path, item) in doc["paths"].as_object().unwrap() {
+        for (method, op) in item.as_object().unwrap() {
+            for p in op["parameters"].as_array().into_iter().flatten() {
+                let name = p["name"].as_str().unwrap();
+                if p["in"] == "path" && !path.contains(&format!("{{{name}}}")) {
+                    wrong.push(format!("{method} {path} {name}"));
+                }
+            }
+        }
+    }
+    assert!(wrong.is_empty(), "path parameters without a placeholder: {wrong:?}");
+}

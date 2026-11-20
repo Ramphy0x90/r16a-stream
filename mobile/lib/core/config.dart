@@ -63,6 +63,20 @@ class AppConfig {
   final String authentikUrl;
   final OidcProfile profile;
 
+  /// Refuses a release build that would talk to the API or Authentik without TLS, where the
+  /// bearer and refresh tokens would cross the network in clear. Debug builds may use plain
+  /// HTTP against a local API.
+  void validate({bool release = kReleaseMode}) {
+    if (apiBaseUrl.isEmpty || authentikUrl.isEmpty) {
+      throw StateError('R16A_API_BASE_URL and R16A_AUTHENTIK_URL must be set');
+    }
+    if (release &&
+        !(apiBaseUrl.startsWith('https://') &&
+            authentikUrl.startsWith('https://'))) {
+      throw StateError('release builds need https for the API and Authentik');
+    }
+  }
+
   String get discoveryUrl =>
       '$authentikUrl/application/o/${profile.slug}/.well-known/openid-configuration';
 }

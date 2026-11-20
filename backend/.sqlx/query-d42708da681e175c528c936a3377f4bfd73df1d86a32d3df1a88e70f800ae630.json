@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select v.image_id, i.placeholder_hsl, v.format, v.width, v.object_key\n         from image_variants v join images i on i.id = v.image_id\n         where v.image_id = any($1) and i.status = 'ready'\n         order by v.image_id, v.format, v.width",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "image_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "image_variants",
+            "name": "image_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "placeholder_hsl",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "images",
+            "name": "placeholder_hsl"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "format",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "image_variants",
+            "name": "format"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "width",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "image_variants",
+            "name": "width"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "object_key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "image_variants",
+            "name": "object_key"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "d42708da681e175c528c936a3377f4bfd73df1d86a32d3df1a88e70f800ae630"
+}

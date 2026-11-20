@@ -43,6 +43,32 @@ async fn worker_role_reaches_only_its_grants() {
     try_sql(&mut c, "select count(*) from garage_capacity")
         .await
         .expect("worker reads capacity");
+    for (sql, why) in [
+        ("select id, kind, status, listed_at from titles", "readiness checks"),
+        (
+            "update titles set listed_at = now() where false",
+            "bumping Recently added",
+        ),
+        ("select id, title_id, number from seasons", "season numbers"),
+        (
+            "select id, season_id, title_id, number from episodes",
+            "episode numbers",
+        ),
+        ("select title_id, language from title_languages", "language set"),
+        (
+            "select id, kind, status, source_key, source_bytes from images",
+            "image sources",
+        ),
+        (
+            "update images set status = 'ready', ready_at = now() where false",
+            "finishing images",
+        ),
+        ("delete from image_variants where false", "replacing image variants"),
+    ] {
+        try_sql(&mut c, sql)
+            .await
+            .unwrap_or_else(|e| panic!("worker needs {why}, got {e}"));
+    }
 
     for (sql, why) in [
         ("delete from component_health", "worker never deletes health rows"),
@@ -55,6 +81,17 @@ async fn worker_role_reaches_only_its_grants() {
         (
             "create extension if not exists pgcrypto",
             "worker cannot add extensions",
+        ),
+        ("select name from titles", "worker cannot read title text"),
+        ("select overview from episodes", "worker cannot read episode text"),
+        ("select count(*) from title_credits", "worker cannot read credits"),
+        ("select count(*) from genres", "worker cannot read genres"),
+        ("select count(*) from tmdb_cache", "worker cannot read the TMDB cache"),
+        ("update titles set status = 'published'", "worker cannot publish"),
+        ("delete from titles", "worker cannot delete titles"),
+        (
+            "update images set kind = 'poster'",
+            "worker cannot change an image's kind",
         ),
         ("select count(*) from users", "worker cannot read users"),
         ("update users set display_name = 'x'", "worker cannot change users"),

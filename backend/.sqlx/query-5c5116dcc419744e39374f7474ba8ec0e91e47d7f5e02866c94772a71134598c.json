@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "insert into titles (kind, name, sort_name, original_name, overview, year, runtime_minutes, tmdb_id)\n         values ($1, $2, lower(f_unaccent($2)), $3, $4, $5, $6, $7) returning id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "titles",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int2",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5c5116dcc419744e39374f7474ba8ec0e91e47d7f5e02866c94772a71134598c"
+}

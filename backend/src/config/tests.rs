@@ -33,6 +33,11 @@ fn base() -> HashMap<&'static str, String> {
         ),
         ("R16A_OIDC_MOBILE_CLIENT_ID", "r16a-stream-mobile".into()),
         ("R16A_SESSION_KEY", GOOD_KEY.into()),
+        ("R16A_TRUSTED_PROXY_CIDRS", "10.42.0.0/16".into()),
+        (
+            "R16A_TMDB_TOKEN",
+            "eyJhbGciOiJIUzI1NiJ9.tmdb-read-token-4f8c2a91d7e3b605".into(),
+        ),
     ])
 }
 
@@ -325,4 +330,49 @@ fn published_dev_session_key_is_refused_in_production() {
             ..
         })
     ));
+}
+
+#[test]
+fn production_requires_the_trusted_proxy_range() {
+    let mut v = base();
+    v.remove("R16A_TRUSTED_PROXY_CIDRS");
+    assert_eq!(
+        load(&v).unwrap_err(),
+        ConfigError::Missing {
+            name: "R16A_TRUSTED_PROXY_CIDRS"
+        }
+    );
+}
+
+#[test]
+fn tmdb_token_is_required_and_language_checked() {
+    let mut v = base();
+    v.remove("R16A_TMDB_TOKEN");
+    assert_eq!(
+        load(&v).unwrap_err(),
+        ConfigError::Missing {
+            name: "R16A_TMDB_TOKEN"
+        }
+    );
+    let mut v = base();
+    v.insert("R16A_TMDB_LANGUAGE", "english".into());
+    assert!(matches!(
+        load(&v),
+        Err(ConfigError::Invalid {
+            name: "R16A_TMDB_LANGUAGE",
+            ..
+        })
+    ));
+    let mut v = base();
+    v.insert("R16A_TMDB_BASE_URL", "http://api.themoviedb.org/3/".into());
+    assert!(matches!(
+        load(&v),
+        Err(ConfigError::Invalid {
+            name: "R16A_TMDB_BASE_URL",
+            ..
+        })
+    ));
+    let cfg = load(&base()).expect("defaults");
+    assert_eq!(cfg.tmdb.base_url.as_str(), "https://api.themoviedb.org/3/");
+    assert_eq!(cfg.tmdb.language, "en-US");
 }

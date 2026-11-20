@@ -42,6 +42,10 @@ pub enum OidcError {
     /// A token failed verification. The reason is for logs only.
     #[error("token rejected, {0}")]
     Rejected(String),
+    /// The token names a key the JWKS does not hold and the cache was refreshed less than a
+    /// minute ago. Could be a forgery or a key rotation in progress, so it never ends a session.
+    #[error("unknown signing key")]
+    UnknownKey,
 }
 
 /// Endpoints from the discovery document.
@@ -55,10 +59,38 @@ pub struct Discovery {
     pub revocation_endpoint: Option<Url>,
     #[serde(default)]
     pub end_session_endpoint: Option<Url>,
+    /// In Authentik exactly the scope names of the provider's selected mappings, plus `openid`.
+    #[serde(default)]
+    pub scopes_supported: Vec<String>,
 }
 
-/// Claims read from Authentik's ID and access tokens. Both access claims default to false when
-/// missing, so a broken scope mapping locks people out instead of letting them in. A claim of
+/// Scopes every provider needs as selected mappings. Authentik silently drops a requested scope
+/// the provider lacks, so without this check a missing mapping only shows as a failed login.
+pub const REQUIRED_SCOPES: [&str; 3] = ["openid", "offline_access", "r16a-stream"];
+
+/// Scopes whose default mappings put more into tokens than the app may see. The default
+/// `profile` mapping emits every group name of the user (DECISIONS 074).
+pub const UNWANTED_SCOPES: [&str; 2] = ["profile", "email"];
+
+impl Discovery {
+    pub fn missing_scopes(&self) -> Vec<&'static str> {
+        REQUIRED_SCOPES
+            .into_iter()
+            .filter(|s| !self.scopes_supported.iter().any(|x| x == s))
+            .collect()
+    }
+
+    pub fn unwanted_scopes(&self) -> Vec<&'static str> {
+        UNWANTED_SCOPES
+            .into_iter()
+            .filter(|s| self.scopes_supported.iter().any(|x| x == s))
+            .collect()
+    }
+}
+
+/// Claims read from Authentik's ID and access tokens. A missing member claim is kept apart from
+/// `false`, because it means the scope mapping is missing, a setup error. Either way nobody gets
+/// in. The admin claim defaults to false. A claim of
 /// the wrong JSON type fails deserialisation, which also refuses the token.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Claims {
@@ -75,9 +107,20 @@ pub struct Claims {
     #[serde(default)]
     pub preferred_username: Option<String>,
     #[serde(default)]
-    pub r16a_stream_user: bool,
+    pub r16a_stream_user: Option<bool>,
+    /// When the user signed in interactively. Authentik copies it unchanged into every refreshed
+    /// token, which is what lets a revocation outlast refreshes (SPEC 6.8).
+    #[serde(default)]
+    pub auth_time: Option<i64>,
     #[serde(default)]
     pub r16a_stream_admin: bool,
+}
+
+impl Claims {
+    /// Only an explicit `true` counts.
+    pub fn is_member(&self) -> bool {
+        self.r16a_stream_user == Some(true)
+    }
 }
 
 /// Token endpoint response. Every field is a credential, so `Debug` prints nothing of them.
@@ -116,7 +159,13 @@ pub struct Provider {
     jwks: RwLock<Jwks>,
     /// Serialises JWKS fetches, so a burst of unknown key ids causes one request, not many.
     refetch: Mutex<()>,
+    /// After Authentik was found unreachable, calls fail fast until this instant instead of each
+    /// waiting for the timeout, so an outage does not pile up requests.
+    down_until: std::sync::Mutex<Option<Instant>>,
 }
+
+/// How long calls fail fast after Authentik was found unreachable.
+const BACKOFF: Duration = Duration::from_secs(30);
 
 impl std::fmt::Debug for Provider {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -149,6 +198,7 @@ impl Provider {
             discovery: RwLock::new(None),
             jwks: RwLock::new(Jwks::default()),
             refetch: Mutex::new(()),
+            down_until: std::sync::Mutex::new(None),
         }
     }
 
@@ -191,6 +241,13 @@ impl Provider {
         {
             if endpoint.scheme() != scheme {
                 return Err(OidcError::Protocol("discovery endpoint downgrades the scheme".into()));
+            }
+            // Every endpoint must live on the issuer's host, so a tampered document cannot send
+            // the client secret or a refresh token elsewhere.
+            if endpoint.host_str() != self.issuer.host_str()
+                || endpoint.port_or_known_default() != self.issuer.port_or_known_default()
+            {
+                return Err(OidcError::Protocol("discovery endpoint on another host".into()));
             }
         }
         *guard = Some(doc.clone());
@@ -240,7 +297,7 @@ impl Provider {
                 return Ok(k.clone());
             }
             if jwks.fetched_at.is_some_and(|t| t.elapsed() < JWKS_REFETCH_INTERVAL) {
-                return Err(OidcError::Rejected("unknown key id".into()));
+                return Err(OidcError::UnknownKey);
             }
         }
         let set: JwkSet = self.get_json(discovery.jwks_uri.clone()).await?;
@@ -259,7 +316,7 @@ impl Provider {
             keys,
             fetched_at: Some(Instant::now()),
         };
-        found.ok_or_else(|| OidcError::Rejected("unknown key id".into()))
+        found.ok_or(OidcError::UnknownKey)
     }
 
     /// Redeems an authorization code with the PKCE verifier.
@@ -317,11 +374,18 @@ impl Provider {
             }
             return Ok(t);
         }
-        if status.is_server_error() {
-            return Err(OidcError::Unavailable(format!("token endpoint answered {status}")));
+        if status.is_server_error() || status == StatusCode::TOO_MANY_REQUESTS {
+            return Err(self.unavailable(format!("token endpoint answered {status}")));
         }
+        // Only a JSON `invalid_grant` says the grant itself is dead. A wrong client secret, a
+        // proxy error page or anything else unexpected is an operator problem, and must not
+        // sign everyone out.
         match serde_json::from_slice::<ErrorBody>(&body) {
             Ok(e) if e.error == "invalid_grant" => Err(OidcError::InvalidGrant),
+            Ok(e) if e.error == "invalid_client" => {
+                tracing::error!("Authentik refused the client credentials, check R16A_OIDC_WEB_CLIENT_SECRET");
+                Err(OidcError::Unavailable("client credentials refused".into()))
+            }
             Ok(e) => Err(OidcError::Protocol(format!(
                 "token endpoint error {}",
                 e.error
@@ -330,13 +394,14 @@ impl Provider {
                     .take(40)
                     .collect::<String>()
             ))),
-            Err(_) => Err(OidcError::Protocol(format!("token endpoint answered {status}"))),
+            Err(_) => Err(OidcError::Unavailable(format!("token endpoint answered {status}"))),
         }
     }
 
     /// Posts a form with `client_secret_basic` when this provider has a secret. The body is
     /// built here because reqwest is compiled without its form feature.
     async fn post_form(&self, url: Url, form: &[(&str, &str)]) -> Result<reqwest::Response, OidcError> {
+        self.check_backoff()?;
         // Built in a block, the serializer is not Send and must not live across the await.
         let body = {
             let mut ser = url::form_urlencoded::Serializer::new(String::new());
@@ -360,20 +425,37 @@ impl Provider {
             let basic = STANDARD.encode(format!("{}:{}", enc(&self.client_id), enc(secret.expose_secret())));
             req = req.header(header::AUTHORIZATION, format!("Basic {basic}"));
         }
-        req.send().await.map_err(|e| OidcError::Unavailable(transport(&e)))
+        req.send().await.map_err(|e| self.unavailable(transport(&e)))
+    }
+
+    fn check_backoff(&self) -> Result<(), OidcError> {
+        let down = self.down_until.lock().map_or(None, |g| *g);
+        if down.is_some_and(|t| Instant::now() < t) {
+            return Err(OidcError::Unavailable("backing off after an outage".into()));
+        }
+        Ok(())
+    }
+
+    /// Records an outage and returns the error describing it.
+    fn unavailable(&self, reason: String) -> OidcError {
+        if let Ok(mut g) = self.down_until.lock() {
+            *g = Some(Instant::now() + BACKOFF);
+        }
+        OidcError::Unavailable(reason)
     }
 
     async fn get_json<T: DeserializeOwned>(&self, url: Url) -> Result<T, OidcError> {
+        self.check_backoff()?;
         let res = self
             .http
             .get(url)
             .header(header::ACCEPT, "application/json")
             .send()
             .await
-            .map_err(|e| OidcError::Unavailable(transport(&e)))?;
+            .map_err(|e| self.unavailable(transport(&e)))?;
         let status = res.status();
         if status.is_server_error() || status == StatusCode::TOO_MANY_REQUESTS {
-            return Err(OidcError::Unavailable(format!("answered {status}")));
+            return Err(self.unavailable(format!("answered {status}")));
         }
         if !status.is_success() {
             return Err(OidcError::Protocol(format!("answered {status}")));

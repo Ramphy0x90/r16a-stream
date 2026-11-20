@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update titles set status = 'draft', updated_at = now() where id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "61dff1e34fd5142b44d98e491779838b0ef01e2eeab19ed1f11938cf31cb00e0"
+}

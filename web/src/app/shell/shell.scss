@@ -12,6 +12,27 @@
   border-bottom: 1px solid var(--border);
 }
 
+.nav {
+  display: flex;
+  gap: 4px;
+  margin-left: 16px;
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 10px;
+    border-radius: 8px;
+    color: var(--text-muted);
+    text-decoration: none;
+
+    &.active {
+      color: var(--text);
+      background: var(--surface-sunken);
+    }
+  }
+}
+
 .account {
   display: flex;
   align-items: center;

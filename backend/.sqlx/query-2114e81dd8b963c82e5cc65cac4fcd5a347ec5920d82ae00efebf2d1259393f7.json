@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update genres set tmdb_id = coalesce(tmdb_id, $2) where slug = $1 returning id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "genres",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2114e81dd8b963c82e5cc65cac4fcd5a347ec5920d82ae00efebf2d1259393f7"
+}

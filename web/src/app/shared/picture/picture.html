@@ -1,0 +1,13 @@
+<picture [style.background-color]="placeholder()">
+  @if (avif()) {
+    <source type="image/avif" [attr.srcset]="avif()" [attr.sizes]="sizes()" />
+  }
+  <img
+    [src]="fallback()"
+    [attr.srcset]="webp()"
+    [attr.sizes]="sizes()"
+    [alt]="alt()"
+    [attr.loading]="eager() ? 'eager' : 'lazy'"
+    decoding="async"
+  />
+</picture>

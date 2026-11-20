@@ -1,4 +1,5 @@
-//! The worker binary. Claims jobs from Postgres and runs ffmpeg in later phases.
+//! The worker binary. Claims jobs from Postgres and runs ffmpeg. Images since Phase 3b,
+//! transcodes from Phase 4.
 //!
 //! Subcommands
 //! - `run` (default) starts the health server and the background tasks
@@ -14,6 +15,8 @@ use r16a_stream_backend::{
     config::WorkerConfig,
     db,
     health::{healthz, shutdown_signal},
+    images::worker::ImageWorker,
+    jobs::repository as jobs,
     storage::{
         GarageClient,
         probe::{self, Component, WriteHealth},
@@ -98,6 +101,18 @@ async fn run() -> ExitCode {
         }
     };
     let write_health = Arc::new(WriteHealth::default());
+    let image_worker = Arc::new(ImageWorker {
+        db: pool.clone(),
+        storage: storage.clone(),
+        ffmpeg: config.ffmpeg.clone(),
+        ffprobe: config.ffprobe.clone(),
+        scratch_root: config.scratch_dir.clone(),
+        instance: r16a_stream_backend::instance_name(),
+    });
+    for _ in 0..config.image_concurrency {
+        tokio::spawn(image_worker.clone().run());
+    }
+    spawn_reaper(pool.clone());
     probe::spawn(
         storage,
         pool.clone(),
@@ -135,4 +150,20 @@ async fn run() -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+/// Puts jobs back whose worker stopped heartbeating for two minutes, for example after a crash
+/// or a node loss (SPEC 7.2). Any worker may do it, the update is idempotent.
+fn spawn_reaper(pool: sqlx::PgPool) {
+    tokio::spawn(async move {
+        let mut tick = tokio::time::interval(std::time::Duration::from_secs(60));
+        loop {
+            tick.tick().await;
+            match jobs::reap_stale(&pool, 120.0).await {
+                Ok(n) if n > 0 => tracing::warn!(jobs = n, "stale jobs requeued"),
+                Ok(_) => {}
+                Err(e) => tracing::warn!(error = %e, "job reaper failed"),
+            }
+        }
+    });
 }

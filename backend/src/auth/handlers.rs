@@ -10,14 +10,29 @@ use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
 use super::{WebSession, cookies::sanitize_return_to, service};
-use crate::{error::AppError, http::client_ip, state::AppState};
+use crate::{
+    error::AppError,
+    http::{client_ip, request_id::RequestId},
+    state::AppState,
+};
 
 /// Where a failed login lands. The web app shows a neutral message there and a new sign-in
 /// button. The reason stays in the logs.
 const SIGNIN_FAILED: &str = "/signin?error=failed";
 const SIGNIN_DENIED: &str = "/signin?error=denied";
 
+/// A login that failed because Authentik is set up wrong for this app. Everyone sees the same
+/// neutral message with a reference, which is the request id. The log line under that id names
+/// the missing setting, so an admin finds it without the page telling anonymous visitors how
+/// the identity provider is configured.
+fn setup_failure(request_id: Option<&RequestId>, reason: &str, cookies: &[HeaderValue]) -> Response {
+    let reference = request_id.map_or("unknown", |r| r.0.as_str());
+    tracing::error!(reference, reason, "login impossible, Authentik setup incomplete");
+    redirect(&format!("/signin?error=setup&ref={reference}"), cookies)
+}
+
 #[derive(Debug, Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 #[serde(rename_all = "camelCase")]
 pub struct LoginQuery {
     /// Same-origin path to return to after login. Anything else is replaced by `/`.
@@ -45,19 +60,31 @@ pub async fn login(
     let auth = &state.auth;
     service::check_login_rate(auth, client_ip::client_ip(&parts, &auth.trusted_proxies))?;
     let return_to = sanitize_return_to(q.return_to.as_deref());
-    let start = service::start_login(auth, &state.db, &return_to).await?;
-    Ok(redirect(
-        start.authorize_url.as_str(),
-        &[auth.cookies.flow(&start.flow_cookie)],
-    ))
+    match service::start_login(auth, &state.db, &return_to).await {
+        Ok(start) => Ok(redirect(
+            start.authorize_url.as_str(),
+            &[auth.cookies.flow(&start.flow_cookie)],
+        )),
+        Err(service::LoginError::Setup(reason)) => Ok(setup_failure(parts.extensions.get(), &reason, &[])),
+        Err(service::LoginError::App(e)) => Err(e),
+        Err(e) => Err(AppError::internal(e)),
+    }
 }
 
 /// Query of the callback. Unknown parameters such as `iss` are ignored.
-#[derive(Debug, Deserialize, IntoParams)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct CallbackQuery {
     pub code: Option<String>,
     pub state: Option<String>,
     pub error: Option<String>,
+}
+
+/// The code and state are one-time credentials, so they never print.
+impl std::fmt::Debug for CallbackQuery {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("CallbackQuery([redacted])")
+    }
 }
 
 /// Finishes the web login, sets the session cookie and returns to the app.
@@ -91,9 +118,10 @@ pub async fn callback(
             &[clear_flow, auth.cookies.session(&done.session_cookie)],
         )),
         Err(service::LoginError::Denied) => {
-            tracing::info!("login denied, no r16a_stream_user claim or user disabled");
+            tracing::info!("login denied, r16a_stream_user is false or the user is disabled");
             Ok(redirect(SIGNIN_DENIED, &[clear_flow]))
         }
+        Err(service::LoginError::Setup(reason)) => Ok(setup_failure(parts.extensions.get(), &reason, &[clear_flow])),
         Err(service::LoginError::App(e)) => Err(e),
         Err(e) => {
             tracing::warn!(error = %e, "login failed");

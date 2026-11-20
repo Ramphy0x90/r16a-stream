@@ -1,0 +1,123 @@
+@switch (loaded().kind) {
+  @case ('loading') {
+    <p role="status">{{ 'catalog.loading' | transloco }}</p>
+  }
+  @case ('missing') {
+    <p role="alert">{{ 'title.missing' | transloco }}</p>
+  }
+  @case ('error') {
+    <p class="error-text" role="alert">{{ 'catalog.error' | transloco }}</p>
+  }
+}
+@if (loaded(); as l) {
+  @if (l.kind === 'ok') {
+    <article class="title">
+      @if (l.title.backdrop; as b) {
+        <app-picture
+          class="backdrop"
+          [image]="b"
+          sizes="(min-width: 960px) 960px, 100vw"
+          [eager]="true"
+        />
+      }
+      <header class="head">
+        @if (l.title.poster; as p) {
+          <app-picture
+            class="poster"
+            [image]="p"
+            sizes="160px"
+            [alt]="l.title.name"
+            [eager]="true"
+          />
+        }
+        <div>
+          <h1>{{ l.title.name }}</h1>
+          <p class="meta">
+            {{ 'catalog.kind.' + l.title.kind | transloco }}
+            @if (l.title.year; as y) {
+              · {{ y }}
+            }
+            @if (l.title.runtimeMinutes; as r) {
+              · {{ 'title.runtime' | transloco: { minutes: r } }}
+            }
+          </p>
+          @if (l.title.originalName; as o) {
+            <p class="meta">{{ o }}</p>
+          }
+        </div>
+      </header>
+
+      @if (l.title.genres.length > 0) {
+        <ul class="chips" [attr.aria-label]="'title.genres' | transloco">
+          @for (g of l.title.genres; track g.id) {
+            <li>{{ g.name }}</li>
+          }
+        </ul>
+      }
+
+      @if (l.title.overview; as text) {
+        <p class="overview">{{ text }}</p>
+      }
+
+      @if (people().leads.length > 0 || people().cast.length > 0) {
+        <section aria-labelledby="credits-heading">
+          <h2 id="credits-heading">{{ 'title.credits' | transloco }}</h2>
+          <dl class="credits">
+            @for (c of people().leads; track $index) {
+              <div>
+                <dt>{{ 'title.role.' + c.role | transloco }}</dt>
+                <dd>{{ c.personName }}</dd>
+              </div>
+            }
+            @for (c of people().cast; track $index) {
+              <div>
+                <dt>{{ c.personName }}</dt>
+                <dd>{{ c.character ?? '' }}</dd>
+              </div>
+            }
+          </dl>
+        </section>
+      }
+
+      @if (l.title.seasons.length > 0) {
+        <section aria-labelledby="episodes-heading">
+          <h2 id="episodes-heading">{{ 'title.episodes' | transloco }}</h2>
+          <div class="seasons" role="group" [attr.aria-label]="'title.seasons' | transloco">
+            @for (s of l.title.seasons; track s.number) {
+              <button
+                type="button"
+                class="btn"
+                [class.btn-primary]="season() === s.number"
+                [attr.aria-pressed]="season() === s.number"
+                (click)="pickSeason(s.number)"
+              >
+                {{
+                  s.number === 0
+                    ? ('title.specials' | transloco)
+                    : ('title.season' | transloco: { number: s.number })
+                }}
+              </button>
+            }
+          </div>
+          @if (episodes(); as list) {
+            <ol class="episodes">
+              @for (e of list; track e.id) {
+                <li>
+                  <span class="number">{{ e.number }}</span>
+                  <span class="ename">{{
+                    e.name ?? ('title.episode' | transloco: { number: e.number })
+                  }}</span>
+                  @if (e.runtimeMinutes; as r) {
+                    <span class="meta">{{ 'title.runtime' | transloco: { minutes: r } }}</span>
+                  }
+                </li>
+              }
+            </ol>
+          } @else {
+            <p role="status">{{ 'catalog.loading' | transloco }}</p>
+          }
+        </section>
+      }
+    </article>
+  }
+}

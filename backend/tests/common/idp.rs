@@ -59,6 +59,9 @@ pub enum RefreshMode {
     Ok,
     InvalidGrant,
     Down,
+    /// `invalid_client`, as after a client secret rotation.
+    InvalidClient,
+    RateLimited,
 }
 
 struct Inner {
@@ -71,6 +74,11 @@ struct Inner {
     jwks_fetches: AtomicUsize,
     revoked: Mutex<Vec<String>>,
     last_token_auth: Mutex<Option<String>>,
+    /// `scopes_supported` in discovery, the provider's selected mappings in Authentik.
+    scopes: Mutex<Vec<String>>,
+    /// Whether the code exchange returns a refresh token, which Authentik only does with the
+    /// `offline_access` mapping selected.
+    issue_refresh: std::sync::atomic::AtomicBool,
 }
 
 #[derive(Clone)]
@@ -93,6 +101,8 @@ impl MockIdp {
             jwks_fetches: AtomicUsize::new(0),
             revoked: Mutex::default(),
             last_token_auth: Mutex::default(),
+            scopes: Mutex::new(vec!["openid".into(), "offline_access".into(), "r16a-stream".into()]),
+            issue_refresh: std::sync::atomic::AtomicBool::new(true),
         });
         let app = Router::new()
             .route("/application/o/{slug}/.well-known/openid-configuration", get(discovery))
@@ -123,8 +133,8 @@ impl MockIdp {
         let now = now();
         json!({
             "iss": self.issuer("web"), "aud": WEB_CLIENT_ID, "azp": WEB_CLIENT_ID, "sub": sub,
-            "iat": now, "exp": now + 300, "name": format!("Name {sub}"), "preferred_username": sub,
-            "r16a_stream_user": user, "r16a_stream_admin": admin,
+            "iat": now, "exp": now + 300, "auth_time": now, "name": format!("Name {sub}"),
+            "preferred_username": sub, "r16a_stream_user": user, "r16a_stream_admin": admin,
         })
     }
 
@@ -133,8 +143,8 @@ impl MockIdp {
         let now = now();
         json!({
             "iss": self.issuer("mobile"), "aud": MOBILE_CLIENT_ID, "azp": MOBILE_CLIENT_ID, "sub": sub,
-            "iat": now, "exp": now + 300, "name": format!("Name {sub}"), "preferred_username": sub,
-            "scope": "openid profile offline_access r16a-stream",
+            "iat": now, "exp": now + 300, "auth_time": now, "name": format!("Name {sub}"),
+            "preferred_username": sub, "scope": "openid offline_access r16a-stream",
             "r16a_stream_user": user, "r16a_stream_admin": admin,
         })
     }
@@ -155,6 +165,16 @@ impl MockIdp {
     /// Claims of the ID token the next successful refresh returns.
     pub fn set_next_refresh_claims(&self, claims: Value) {
         *self.inner.next_refresh_claims.lock().unwrap() = Some(claims);
+    }
+
+    /// Replaces the scopes the providers advertise, to simulate missing or extra mappings.
+    pub fn set_scopes(&self, scopes: &[&str]) {
+        *self.inner.scopes.lock().unwrap() = scopes.iter().map(|s| (*s).to_owned()).collect();
+    }
+
+    /// Simulates a provider without the `offline_access` mapping.
+    pub fn set_issue_refresh(&self, on: bool) {
+        self.inner.issue_refresh.store(on, Ordering::SeqCst);
     }
 
     pub fn refresh_calls(&self) -> usize {
@@ -208,6 +228,7 @@ async fn discovery(State(s): State<Arc<Inner>>, Path(slug): Path<String>) -> Jso
         "jwks_uri": format!("{b}/application/o/{slug}/jwks/"),
         "revocation_endpoint": format!("{b}/application/o/revoke/"),
         "end_session_endpoint": format!("{b}/application/o/{slug}/end-session/"),
+        "scopes_supported": s.scopes.lock().unwrap().clone(),
     }))
 }
 
@@ -225,20 +246,23 @@ fn invalid_grant() -> Response {
     (StatusCode::BAD_REQUEST, Json(json!({ "error": "invalid_grant" }))).into_response()
 }
 
+/// Issues tokens. `iat` and `exp` are new, `auth_time` stays as it was, as in Authentik.
 fn issue(s: &Inner, mut claims: Value) -> Response {
     let rt = format!("rt-{}", uuid::Uuid::new_v4().simple());
     let now = now();
     claims["iat"] = json!(now);
     claims["exp"] = json!(now + 300);
-    s.refresh_tokens.lock().unwrap().insert(rt.clone(), claims.clone());
-    Json(json!({
+    let mut body = json!({
         "access_token": "opaque-for-the-bff",
         "token_type": "Bearer",
         "expires_in": 300,
         "id_token": sign(&claims),
-        "refresh_token": rt,
-    }))
-    .into_response()
+    });
+    if s.issue_refresh.load(Ordering::SeqCst) {
+        s.refresh_tokens.lock().unwrap().insert(rt.clone(), claims);
+        body["refresh_token"] = json!(rt);
+    }
+    Json(body).into_response()
 }
 
 async fn token(State(s): State<Arc<Inner>>, headers: axum::http::HeaderMap, body: String) -> Response {
@@ -262,6 +286,10 @@ async fn token(State(s): State<Arc<Inner>>, headers: axum::http::HeaderMap, body
             match *s.refresh_mode.lock().unwrap() {
                 RefreshMode::Down => return StatusCode::BAD_GATEWAY.into_response(),
                 RefreshMode::InvalidGrant => return invalid_grant(),
+                RefreshMode::InvalidClient => {
+                    return (StatusCode::UNAUTHORIZED, Json(json!({ "error": "invalid_client" }))).into_response();
+                }
+                RefreshMode::RateLimited => return StatusCode::TOO_MANY_REQUESTS.into_response(),
                 RefreshMode::Ok => {}
             }
             // Rotation as in Authentik with threshold 0, the old token is gone after one use.

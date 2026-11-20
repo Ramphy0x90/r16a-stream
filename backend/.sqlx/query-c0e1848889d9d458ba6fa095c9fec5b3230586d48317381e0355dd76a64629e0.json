@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select kind, status, source_key, source_bytes from images where id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "images",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "images",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "source_key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "images",
+            "name": "source_key"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "source_bytes",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "images",
+            "name": "source_bytes"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "c0e1848889d9d458ba6fa095c9fec5b3230586d48317381e0355dd76a64629e0"
+}

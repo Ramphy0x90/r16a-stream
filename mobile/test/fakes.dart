@@ -40,6 +40,7 @@ class MemoryStore implements TokenStore {
 class FakeOidc implements OidcClient {
   int refreshCalls = 0;
   int revokeCalls = 0;
+  final revokedTokens = <String>[];
   int endSessionCalls = 0;
   Object? refreshError;
   Object? revokeError;
@@ -67,6 +68,7 @@ class FakeOidc implements OidcClient {
   @override
   Future<void> revoke(String refreshToken) async {
     revokeCalls++;
+    revokedTokens.add(refreshToken);
     final e = revokeError;
     if (e != null) throw e;
   }

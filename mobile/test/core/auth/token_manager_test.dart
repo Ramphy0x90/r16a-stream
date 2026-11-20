@@ -75,4 +75,27 @@ void main() {
   test('tokens never print their values', () {
     expect(tokens('secret').toString(), isNot(contains('secret')));
   });
+
+  test('signing out during a refresh revokes the newest token and stays signed out', () async {
+    final oidc = FakeOidc()..gate = Completer<void>();
+    final store = MemoryStore(tokens('1', expires: expired));
+    final m = TokenManager(client: oidc, store: store);
+    final pending = m.accessToken();
+    await Future<void>.delayed(Duration.zero);
+    final out = m.signOut();
+    oidc.gate!.complete();
+    await out;
+    await pending.catchError((_) => null);
+    expect(
+      store.value,
+      isNull,
+      reason: 'the refresh result is not written after sign-out',
+    );
+    expect(await m.hasSession(), isFalse);
+    expect(
+      oidc.revokedTokens,
+      contains('rt-2'),
+      reason: 'the rotated token is revoked',
+    );
+  });
 }

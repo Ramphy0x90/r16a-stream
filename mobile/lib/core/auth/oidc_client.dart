@@ -19,7 +19,10 @@ abstract interface class OidcClient {
   Future<void> endSession();
 }
 
-const _scopes = ['openid', 'profile', 'offline_access', 'r16a-stream'];
+/// No `profile` and no `email`. Authentik's default profile mapping sends every group name of
+/// the user, the `r16a-stream` mapping carries the name and the two access claims instead
+/// (DECISIONS 074).
+const _scopes = ['openid', 'offline_access', 'r16a-stream'];
 
 class AppAuthOidcClient implements OidcClient {
   AppAuthOidcClient(this._config, {FlutterAppAuth? appAuth, Dio? http})

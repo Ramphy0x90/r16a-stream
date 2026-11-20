@@ -24,6 +24,10 @@ class TokenManager {
   bool _loaded = false;
   Future<Tokens>? _refreshing;
 
+  /// Bumped on every sign-in and sign-out. A refresh that started in an older generation must
+  /// not write its result, or a sign-out could be undone by a refresh finishing after it.
+  int _generation = 0;
+
   /// Refresh this long before expiry, so a request does not leave with a token that dies on
   /// the way.
   static const refreshMargin = Duration(seconds: 30);
@@ -65,15 +69,23 @@ class TokenManager {
   }
 
   Future<Tokens> _doRefresh(String refreshToken) async {
+    final generation = _generation;
     try {
       final next = await _client.refresh(refreshToken);
+      if (generation != _generation) {
+        // Signed out meanwhile. Revoke what Authentik just issued instead of keeping it.
+        unawaited(_revokeQuietly(next.refreshToken));
+        throw const RefreshRejected();
+      }
       // Stored before anyone uses the new access token, see TokenStore.write.
       await _store.write(next);
       _tokens = next;
       return next;
     } on RefreshRejected {
-      await _endLocally();
-      _signedOut.add(null);
+      if (generation == _generation) {
+        await _endLocally();
+        _signedOut.add(null);
+      }
       rethrow;
     }
   }
@@ -81,6 +93,7 @@ class TokenManager {
   /// Opens the system browser for the Authentik login with PKCE.
   Future<void> signIn() async {
     final t = await _client.signIn();
+    _generation++;
     await _store.write(t);
     _tokens = t;
     _loaded = true;
@@ -90,19 +103,33 @@ class TokenManager {
   /// Local state is cleared even when Authentik is unreachable.
   Future<void> signOut() async {
     await _load();
+    // A refresh in flight rotates the token. Wait for it so the newest one is revoked.
+    final running = _refreshing;
+    if (running != null) {
+      try {
+        await running;
+      } on Object {
+        // Whatever it ended with, the session ends now.
+      }
+    }
+    _generation++;
     final t = _tokens;
     await _endLocally();
     if (t != null) {
-      try {
-        await _client.revoke(t.refreshToken);
-      } on Object {
-        // Best effort. The token is gone from the device either way.
-      }
+      await _revokeQuietly(t.refreshToken);
     }
     try {
       await _client.endSession();
     } on Object {
       // The user may close the browser tab, the local sign-out already happened.
+    }
+  }
+
+  Future<void> _revokeQuietly(String refreshToken) async {
+    try {
+      await _client.revoke(refreshToken);
+    } on Object {
+      // Best effort. The token is gone from the device either way.
     }
   }
 

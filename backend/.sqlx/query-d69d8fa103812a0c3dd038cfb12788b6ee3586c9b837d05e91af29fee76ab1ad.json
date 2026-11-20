@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select s.is_admin, s.refresh_token_enc, s.key_id, s.user_id, u.oidc_subject,\n                extract(epoch from now() - s.claims_refreshed_at)::float8 as \"claims_age_secs!\"\n         from sessions s join users u on u.id = s.user_id\n         where s.id = $1\n         for update of s",
+  "query": "update sessions s set refresh_lease_until = now() + make_interval(secs => $3)\n         from users u\n         where s.id = $1 and u.id = s.user_id\n           and s.claims_refreshed_at < now() - make_interval(secs => $2)\n           and (s.refresh_lease_until is null or s.refresh_lease_until < now())\n         returning s.is_admin, s.refresh_token_enc, s.key_id, s.user_id, u.oidc_subject,\n                   extract(epoch from now() - s.claims_refreshed_at)::float8 as \"claims_age_secs!\"",
   "describe": {
     "columns": [
       {
@@ -67,7 +67,9 @@
     ],
     "parameters": {
       "Left": [
-        "Uuid"
+        "Uuid",
+        "Float8",
+        "Float8"
       ]
     },
     "nullable": [
@@ -79,5 +81,5 @@
       null
     ]
   },
-  "hash": "3bafe63319d52cfb1d80edcec7e1ac8e5f553825fa2e28de508687ffa73c5734"
+  "hash": "d69d8fa103812a0c3dd038cfb12788b6ee3586c9b837d05e91af29fee76ab1ad"
 }

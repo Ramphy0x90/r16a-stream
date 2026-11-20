@@ -2,7 +2,14 @@
   <h1 id="signin-heading">{{ 'signin.heading' | transloco }}</h1>
   <p>{{ 'signin.lead' | transloco }}</p>
   @if (message(); as m) {
-    <p class="message" role="alert">{{ 'signin.error.' + m | transloco }}</p>
+    <div class="message" role="alert">
+      <p>{{ 'signin.error.' + m | transloco }}</p>
+      @if (reference(); as r) {
+        <p>
+          {{ 'signin.reference' | transloco }} <code class="reference">{{ r }}</code>
+        </p>
+      }
+    </div>
   }
   <button type="button" class="primary" (click)="signIn()">
     {{ 'signin.button' | transloco }}

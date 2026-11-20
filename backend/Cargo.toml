@@ -36,7 +36,7 @@ subtle = "2.6.1"
 sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "tls-rustls-ring-webpki", "postgres", "macros", "migrate", "uuid", "time", "json", "derive"] }
 thiserror = "2.0.21"
 time = { version = "0.3.55", features = ["serde", "formatting", "parsing"] }
-tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread", "net", "signal", "time", "sync", "io-util", "fs"] }
+tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread", "net", "signal", "time", "sync", "io-util", "fs", "process"] }
 tower = { version = "0.5.3", features = ["util"] }
 tower-http = { version = "0.7.1", features = ["trace", "timeout", "limit", "set-header", "catch-panic", "sensitive-headers", "compression-br", "compression-gzip", "util"] }
 tracing = "0.1.44"

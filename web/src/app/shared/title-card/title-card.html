@@ -1,0 +1,16 @@
+<a class="card" [routerLink]="['/title', title().id]">
+  <div class="poster" aria-hidden="true">
+    @if (title().poster; as poster) {
+      <app-picture [image]="poster" sizes="(min-width: 900px) 180px, 45vw" />
+    } @else {
+      {{ initials() }}
+    }
+  </div>
+  <span class="name">{{ title().name }}</span>
+  <span class="meta">
+    {{ 'catalog.kind.' + title().kind | transloco }}
+    @if (title().year; as year) {
+      · {{ year }}
+    }
+  </span>
+</a>

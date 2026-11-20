@@ -7,6 +7,7 @@ use sqlx::PgPool;
 use crate::{
     auth::AuthState,
     config::ApiConfig,
+    http::rate_limit::FeatureLimits,
     storage::{GarageClient, probe::WriteHealth},
 };
 
@@ -17,6 +18,10 @@ pub struct AppState {
     pub storage: Arc<GarageClient>,
     pub write_health: Arc<WriteHealth>,
     pub auth: Arc<AuthState>,
+    pub limits: Arc<FeatureLimits>,
+    pub tmdb: Arc<crate::tmdb::client::TmdbClient>,
+    pub tmdb_images: Arc<crate::images::ingest::TmdbImages>,
+    pub image_urls: Arc<crate::images::urls::ImageUrls>,
 }
 
 impl AppState {

@@ -1,0 +1,13 @@
+# Models for the r16a-stream API from docs/openapi.json, the only source of API shapes in the
+# app. No HTTP clients, dio and the auth interceptor stay in charge of requests (SPEC 12). Plain
+# serializers, so no build_runner step and no serializer package ships in the app.
+# Regenerate with shared/scripts/gen-mobile-api.sh, never edit the output by hand.
+swagger_parser:
+  schema_path: ../docs/openapi.json
+  output_directory: lib/core/api/generated
+  generation:
+    serializer: plain
+    http_client: dio
+    generate_docs: true
+    operation_filters:
+      include_paths: []

@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select s.id from seasons s join titles t on t.id = s.title_id\n         where s.title_id = $1 and s.number = $2 and t.status = 'published'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "seasons",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int2"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "abdacfc191bb0f796e461e0d36711e75102c981534dbb296eb93cec5e2d8a6a8"
+}

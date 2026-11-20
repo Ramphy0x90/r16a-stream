@@ -141,7 +141,9 @@ async fn login_redirect_carries_pkce_state_and_nonce(pool: PgPool) {
     assert_eq!(param(&url, "response_type"), "code");
     assert_eq!(param(&url, "client_id"), common::idp::WEB_CLIENT_ID);
     assert_eq!(param(&url, "redirect_uri"), format!("{ORIGIN}/api/v1/auth/callback"));
-    assert_eq!(param(&url, "scope"), "openid profile offline_access r16a-stream");
+    // No profile and no email scope, their default mappings would put every group name and
+    // the address into the tokens (DECISIONS 074).
+    assert_eq!(param(&url, "scope"), "openid offline_access r16a-stream");
     assert_eq!(param(&url, "code_challenge_method"), "S256");
     assert_eq!(param(&url, "code_challenge").len(), 43);
     assert_eq!(param(&url, "state").len(), 43);
@@ -518,4 +520,84 @@ async fn login_is_rate_limited_per_client_address(pool: PgPool) {
         .await
         .unwrap();
     assert_eq!(spoofed.status(), StatusCode::TOO_MANY_REQUESTS);
+}
+
+fn setup_reference(res: &Response) -> String {
+    let location = res.headers()[header::LOCATION].to_str().unwrap().to_owned();
+    let reference = location
+        .strip_prefix("/signin?error=setup&ref=")
+        .unwrap_or_else(|| panic!("expected a setup error, got {location}"));
+    assert_eq!(reference.len(), 32, "the request id, nothing about the setting");
+    assert!(reference.bytes().all(|b| b.is_ascii_hexdigit()));
+    reference.to_owned()
+}
+
+#[sqlx::test]
+async fn missing_scope_mappings_stop_the_login_before_authentik(pool: PgPool) {
+    let w = Web::new(pool).await;
+    w.idp.set_scopes(&["openid", "r16a-stream"]);
+    let res = w.send(Method::GET, "/api/v1/auth/login", &[], None).await;
+    setup_reference(&res);
+    let flows: i64 = sqlx::query_scalar("select count(*) from oidc_flows")
+        .fetch_one(&w.state.db)
+        .await
+        .unwrap();
+    assert_eq!(flows, 0);
+}
+
+#[sqlx::test]
+async fn no_refresh_token_is_a_setup_error(pool: PgPool) {
+    // Authentik answers without a refresh token when offline_access is advertised but the
+    // mapping does not apply, the failure the first real login hit.
+    let w = Web::new(pool).await;
+    w.idp.set_issue_refresh(false);
+    let (authorize, flow) = w.start("/").await;
+    let mut claims = w.idp.web_claims("ann", true, false);
+    claims["nonce"] = json!(param(&authorize, "nonce"));
+    w.idp.add_code("c", claims);
+    let res = w.callback("c", &param(&authorize, "state"), Some(&flow)).await;
+    setup_reference(&res);
+    assert_eq!(w.session_count().await, 0);
+}
+
+#[sqlx::test]
+async fn missing_access_claim_is_a_setup_error_not_a_denial(pool: PgPool) {
+    let w = Web::new(pool).await;
+    let (authorize, flow) = w.start("/").await;
+    let mut claims = w.idp.web_claims("ben", true, false);
+    let o = claims.as_object_mut().unwrap();
+    o.remove("r16a_stream_user");
+    o.remove("r16a_stream_admin");
+    claims["nonce"] = json!(param(&authorize, "nonce"));
+    w.idp.add_code("c", claims);
+    let res = w.callback("c", &param(&authorize, "state"), Some(&flow)).await;
+    setup_reference(&res);
+    assert_eq!(w.session_count().await, 0);
+    assert_eq!(w.idp.revoked().len(), 1, "the refresh token is not kept");
+}
+
+#[sqlx::test]
+async fn a_wrong_client_secret_does_not_sign_everyone_out(pool: PgPool) {
+    let w = Web::new(pool).await;
+    let session = w.login("cleo", false).await;
+    w.age_claims(301).await;
+    w.idp.set_refresh_mode(RefreshMode::InvalidClient);
+    assert_eq!(w.me(&session).await.status(), StatusCode::OK);
+    assert_eq!(w.session_count().await, 1);
+}
+
+#[sqlx::test]
+async fn rate_limited_refresh_keeps_the_session_and_backs_off(pool: PgPool) {
+    let w = Web::new(pool).await;
+    let session = w.login("dina", false).await;
+    w.age_claims(301).await;
+    w.idp.set_refresh_mode(RefreshMode::RateLimited);
+    assert_eq!(w.me(&session).await.status(), StatusCode::OK);
+    assert_eq!(w.me(&session).await.status(), StatusCode::OK);
+    assert_eq!(
+        w.idp.refresh_calls(),
+        1,
+        "the lease makes the session wait before retrying"
+    );
+    assert_eq!(w.session_count().await, 1);
 }

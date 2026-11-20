@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update jobs set attempts = attempts + 1, locked_by = null, heartbeat_at = null,\n                failure_code = $2, failure_detail = $3,\n                status = case when attempts + 1 >= max_attempts then 'failed' else 'queued' end,\n                finished_at = case when attempts + 1 >= max_attempts then now() end,\n                run_after = now() + make_interval(secs => $4)\n         where id = $1 returning status",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jobs",
+            "name": "status"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Float8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "bd6c47e053fe42acd6f43a9d4a6c6af135471c7dca2f827b1dc6191d41ec1bee"
+}

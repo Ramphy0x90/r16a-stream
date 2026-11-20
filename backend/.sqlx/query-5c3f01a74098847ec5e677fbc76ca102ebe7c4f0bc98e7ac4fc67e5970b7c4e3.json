@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "delete from episodes where id = $1 returning title_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "title_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "episodes",
+            "name": "title_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5c3f01a74098847ec5e677fbc76ca102ebe7c4f0bc98e7ac4fc67e5970b7c4e3"
+}

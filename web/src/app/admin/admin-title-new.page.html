@@ -1,0 +1,166 @@
+<h1>{{ 'admin.titles.new' | transloco }}</h1>
+
+<form class="panel inline" (submit)="lookup($event)">
+  <label class="field grow">
+    <span>{{ 'admin.tmdb.ref' | transloco }}</span>
+    <input
+      name="ref"
+      type="text"
+      maxlength="300"
+      placeholder="https://www.themoviedb.org/movie/603"
+    />
+  </label>
+  <label class="field">
+    <span>{{ 'admin.tmdb.kind' | transloco }}</span>
+    <select name="kind">
+      <option value="">{{ 'admin.tmdb.fromLink' | transloco }}</option>
+      <option value="movie">{{ 'catalog.kind.movie' | transloco }}</option>
+      <option value="show">{{ 'catalog.kind.show' | transloco }}</option>
+    </select>
+  </label>
+  <button class="btn" type="submit" [disabled]="busy()">
+    {{ 'admin.tmdb.lookup' | transloco }}
+  </button>
+</form>
+
+@if (error(); as key) {
+  <p class="error-text" role="alert">{{ key | transloco }}</p>
+}
+
+<div class="form">
+  <label class="field">
+    <span>{{ 'admin.field.kind' | transloco }}</span>
+    <select [value]="draft().kind" (change)="set('kind', $event)">
+      <option value="movie">{{ 'catalog.kind.movie' | transloco }}</option>
+      <option value="show">{{ 'catalog.kind.show' | transloco }}</option>
+    </select>
+  </label>
+  <label class="field">
+    <span>{{ 'admin.field.name' | transloco }}</span>
+    <input
+      type="text"
+      required
+      maxlength="300"
+      [value]="draft().name"
+      (input)="set('name', $event)"
+    />
+  </label>
+  <label class="field">
+    <span>{{ 'admin.field.originalName' | transloco }}</span>
+    <input
+      type="text"
+      maxlength="300"
+      [value]="draft().originalName ?? ''"
+      (input)="set('originalName', $event)"
+    />
+  </label>
+  <label class="field">
+    <span>{{ 'admin.field.year' | transloco }}</span>
+    <input
+      type="number"
+      min="1870"
+      max="2200"
+      [value]="draft().year ?? ''"
+      (input)="set('year', $event)"
+    />
+  </label>
+  @if (draft().kind === 'movie') {
+    <label class="field">
+      <span>{{ 'admin.field.runtime' | transloco }}</span>
+      <input
+        type="number"
+        min="1"
+        max="1440"
+        [value]="draft().runtimeMinutes ?? ''"
+        (input)="set('runtimeMinutes', $event)"
+      />
+    </label>
+  }
+  <label class="field wide">
+    <span>{{ 'admin.field.overview' | transloco }}</span>
+    <textarea
+      maxlength="5000"
+      [value]="draft().overview ?? ''"
+      (input)="set('overview', $event)"
+    ></textarea>
+  </label>
+</div>
+
+@if (draft().posterPath || draft().backdropPath) {
+  <section class="panel" aria-labelledby="images-h">
+    <h2 id="images-h">{{ 'admin.images.heading' | transloco }}</h2>
+    <ul class="list">
+      @if (draft().posterPath) {
+        <li>
+          <span class="grow">{{ 'admin.images.poster' | transloco }}</span>
+          <button class="btn" type="button" (click)="dropImage('posterPath')">
+            {{ 'admin.remove' | transloco }}
+          </button>
+        </li>
+      }
+      @if (draft().backdropPath) {
+        <li>
+          <span class="grow">{{ 'admin.images.backdrop' | transloco }}</span>
+          <button class="btn" type="button" (click)="dropImage('backdropPath')">
+            {{ 'admin.remove' | transloco }}
+          </button>
+        </li>
+      }
+    </ul>
+    <p class="muted">{{ 'admin.images.note' | transloco }}</p>
+  </section>
+}
+
+@if ((draft().newGenres ?? []).length > 0) {
+  <section class="panel" aria-labelledby="genres-h">
+    <h2 id="genres-h">{{ 'title.genres' | transloco }}</h2>
+    <ul class="chips">
+      @for (g of draft().newGenres ?? []; track $index) {
+        <li>
+          <button class="btn" type="button" (click)="removeGenre($index)">
+            {{ g.name }} <span class="visually-hidden">{{ 'admin.remove' | transloco }}</span>✕
+          </button>
+        </li>
+      }
+    </ul>
+  </section>
+}
+
+@if ((draft().credits ?? []).length > 0) {
+  <section class="panel" aria-labelledby="credits-h">
+    <h2 id="credits-h">{{ 'title.credits' | transloco }}</h2>
+    <ul class="list">
+      @for (c of draft().credits ?? []; track $index) {
+        <li>
+          <span class="grow"
+            >{{ c.personName }}
+            <span class="muted">{{ 'title.role.' + c.role | transloco }}</span></span
+          >
+          <button class="btn" type="button" (click)="removeCredit($index)">
+            {{ 'admin.remove' | transloco }}
+          </button>
+        </li>
+      }
+    </ul>
+  </section>
+}
+
+@if ((draft().seasons ?? []).length > 0) {
+  <p class="muted">
+    {{
+      'admin.draft.structure'
+        | transloco: { seasons: (draft().seasons ?? []).length, episodes: episodeCount() }
+    }}
+  </p>
+}
+
+<div class="bar">
+  <button
+    class="btn btn-primary"
+    type="button"
+    [disabled]="busy() || draft().name.trim() === ''"
+    (click)="save()"
+  >
+    {{ 'admin.saveDraft' | transloco }}
+  </button>
+</div>

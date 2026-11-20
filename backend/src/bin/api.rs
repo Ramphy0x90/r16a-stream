@@ -5,6 +5,8 @@
 //! - `migrate` applies migrations with `R16A_MIGRATE_DATABASE_URL`, used by the init container
 //! - `healthcheck` probes the local `/healthz`, for container health checks without curl
 //! - `openapi` prints the `OpenAPI` document
+//! - `seed --bench` loads the SPEC 1 scale, prints the hot query report, and removes the data,
+//!   development and test only
 
 use std::{net::SocketAddr, process::ExitCode, sync::Arc, time::Duration};
 
@@ -40,6 +42,7 @@ fn main() -> ExitCode {
     match command.as_str() {
         "serve" => runtime.block_on(serve()),
         "migrate" => runtime.block_on(migrate()),
+        "seed" if std::env::args().nth(2).as_deref() == Some("--bench") => runtime.block_on(bench()),
         "healthcheck" => runtime.block_on(r16a_stream_backend::health::check_local(
             &std::env::var("R16A_HTTP_BIND").unwrap_or_else(|_| String::from("127.0.0.1:8081")),
         )),
@@ -54,8 +57,59 @@ fn main() -> ExitCode {
             }
         },
         other => {
-            eprintln!("unknown command {other}, expected serve, migrate, healthcheck or openapi");
+            eprintln!("unknown command {other}, expected serve, migrate, healthcheck, openapi or seed --bench");
             ExitCode::from(2)
+        }
+    }
+}
+
+async fn bench() -> ExitCode {
+    let lookup = |n: &str| std::env::var(n).ok();
+    let env = std::env::var("R16A_ENV").unwrap_or_default();
+    if env != "development" && env != "test" {
+        eprintln!("seed --bench writes bulk data and runs only with R16A_ENV development or test");
+        return ExitCode::from(2);
+    }
+    // The owner, because ANALYZE needs the table owner.
+    let url = match config::migrate_database_url(&lookup) {
+        Ok(u) => u,
+        Err(e) => {
+            eprintln!("configuration error, {e}");
+            return ExitCode::from(2);
+        }
+    };
+    let pool = match sqlx::postgres::PgPoolOptions::new()
+        .max_connections(2)
+        .connect(secrecy::ExposeSecret::expose_secret(&url))
+        .await
+    {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("database connection failed, {e}");
+            return ExitCode::FAILURE;
+        }
+    };
+    let result = async {
+        r16a_stream_backend::bench::cleanup(&pool).await?;
+        r16a_stream_backend::bench::seed(&pool).await?;
+        r16a_stream_backend::bench::report(&pool).await
+    }
+    .await;
+    // `--keep` leaves the data in place to look at plans by hand. Run without it to clean up.
+    let keep = std::env::args().nth(3).as_deref() == Some("--keep");
+    let cleaned = if keep {
+        Ok(())
+    } else {
+        r16a_stream_backend::bench::cleanup(&pool).await
+    };
+    match (result, cleaned) {
+        (Ok(report), Ok(())) => {
+            print!("{report}");
+            ExitCode::SUCCESS
+        }
+        (Err(e), _) | (_, Err(e)) => {
+            eprintln!("bench failed, {e}");
+            ExitCode::FAILURE
         }
     }
 }
@@ -131,7 +185,11 @@ async fn serve() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    spawn_auth_tasks(auth.clone(), pool.clone());
+    let Some((tmdb, tmdb_images, image_urls)) = outbound_clients(&config) else {
+        return ExitCode::FAILURE;
+    };
+    let limits = Arc::new(r16a_stream_backend::http::rate_limit::FeatureLimits::default());
+    spawn_auth_tasks(auth.clone(), limits.clone(), pool.clone());
 
     let bind = config.http_bind;
     let state = AppState {
@@ -140,6 +198,10 @@ async fn serve() -> ExitCode {
         storage,
         write_health,
         auth,
+        limits,
+        tmdb,
+        tmdb_images,
+        image_urls,
     };
     let listener = match tokio::net::TcpListener::bind(bind).await {
         Ok(l) => l,
@@ -165,9 +227,13 @@ async fn serve() -> ExitCode {
     }
 }
 
-/// Discovery warm-up, hourly removal of expired sessions and flows, and trimming of idle rate
-/// limiter entries.
-fn spawn_auth_tasks(auth: Arc<AuthState>, pool: sqlx::PgPool) {
+/// Discovery warm-up, hourly removal of expired sessions, flows and TMDB cache entries, and
+/// trimming of idle rate limiter entries.
+fn spawn_auth_tasks(
+    auth: Arc<AuthState>,
+    limits: Arc<r16a_stream_backend::http::rate_limit::FeatureLimits>,
+    pool: sqlx::PgPool,
+) {
     let warm = auth.clone();
     tokio::spawn(async move { warm.warm_up().await });
     tokio::spawn(async move {
@@ -175,16 +241,55 @@ fn spawn_auth_tasks(auth: Arc<AuthState>, pool: sqlx::PgPool) {
         let mut shrink = tokio::time::interval(SHRINK_INTERVAL);
         loop {
             tokio::select! {
-                _ = purge.tick() => match auth_repo::purge_expired(&pool).await {
-                    Ok(n) if n > 0 => tracing::info!(sessions = n, "expired sessions removed"),
-                    Ok(_) => {}
-                    Err(e) => tracing::warn!(error = %e, "session cleanup failed"),
-                },
+                _ = purge.tick() => {
+                    match auth_repo::purge_expired(&pool).await {
+                        Ok(n) if n > 0 => tracing::info!(sessions = n, "expired sessions removed"),
+                        Ok(_) => {}
+                        Err(e) => tracing::warn!(error = %e, "session cleanup failed"),
+                    }
+                    if let Err(e) = r16a_stream_backend::tmdb::repository::purge_expired(&pool).await {
+                        tracing::warn!(error = %e, "TMDB cache cleanup failed");
+                    }
+                }
                 _ = shrink.tick() => {
                     auth.login_limit.shrink();
                     auth.user_limit.shrink();
+                    limits.shrink();
                 }
             }
         }
     });
+}
+
+type Clients = (
+    Arc<r16a_stream_backend::tmdb::client::TmdbClient>,
+    Arc<r16a_stream_backend::images::ingest::TmdbImages>,
+    Arc<r16a_stream_backend::images::urls::ImageUrls>,
+);
+
+/// The TMDB API and image clients and the image URL signer. Logs and returns `None` on failure.
+fn outbound_clients(config: &ApiConfig) -> Option<Clients> {
+    let https_only = config.env == Env::Production;
+    let tmdb = match r16a_stream_backend::tmdb::client::TmdbClient::new(&config.tmdb, https_only) {
+        Ok(t) => Arc::new(t),
+        Err(e) => {
+            tracing::error!(error = %e, "TMDB client setup failed");
+            return None;
+        }
+    };
+    let tmdb_images =
+        match r16a_stream_backend::images::ingest::TmdbImages::new(config.tmdb.image_base_url.clone(), https_only) {
+            Ok(t) => Arc::new(t),
+            Err(e) => {
+                tracing::error!(error = %e, "TMDB image client setup failed");
+                return None;
+            }
+        };
+    let Some(image_urls) =
+        r16a_stream_backend::images::urls::ImageUrls::new(&config.s3_public_endpoint, &config.s3).map(Arc::new)
+    else {
+        tracing::error!("R16A_S3_PUBLIC_ENDPOINT cannot sign image URLs");
+        return None;
+    };
+    Some((tmdb, tmdb_images, image_urls))
 }

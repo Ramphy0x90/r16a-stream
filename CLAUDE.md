@@ -2,7 +2,7 @@
 
 Private, self-hosted streaming of movies and TV shows for members of one Authentik group. Rust (axum) API and transcode worker on PostgreSQL 15 and Garage, an Angular web app and a Flutter mobile app. Working name, the final name and hostname live only in config (`docs/OPERATING.md` section 9).
 
-**Status: Phase 2 (auth) done, awaiting approval** (2026-11-20). Phase 1 approved 2026-11-20. The command table below was run on the dates it states.
+**Status: Phase 3 (catalog, admin content, images) done, awaiting approval** (2026-11-20). Phase 2 gate items and security review fixes done 2026-11-20, Phase 2 approval pending. The command table below was run on the dates it states.
 
 ## Non-negotiable rules
 
@@ -70,6 +70,8 @@ All verified on 2026-11-18, mobile on 2026-11-20. Node 26.13.1 (`nvm use` reads 
 | Tokens, contrast, comment rule, tooling tests | `npm run tokens:check`, `npm run contrast:check`, `npm run check:comments`, `npm run test:scripts` |
 | Invalid UTF-8 probe | `node shared/scripts/utf8-probe.mjs <base url> http://127.0.0.1:3903/health` |
 | Mobile | `cd mobile && fvm install && fvm flutter pub get && fvm flutter analyze && fvm flutter test`, `fvm dart format lib test` |
+| Mobile API models | `shared/scripts/gen-mobile-api.sh` after regenerating `docs/openapi.json` |
+| Hot query bench | `cd backend && cargo run --bin api -- seed --bench`, development only, report into `docs/perf/queries.md` |
 | k8s validation | kubeconform, pinned in Phase 9 with the manifests |
 
 ## Conventions

@@ -4,16 +4,14 @@
   },
   "shell": {
     "skipToContent": "Saltar al contenido",
-    "signOut": "Cerrar sesión"
+    "signOut": "Cerrar sesión",
+    "nav": "Principal",
+    "browse": "Explorar",
+    "admin": "Administración"
   },
   "home": {
     "title": "Inicio",
-    "heading": "Bienvenido",
-    "api": {
-      "checking": "Comprobando la conexión con el servidor…",
-      "reachable": "Conectado al servidor.",
-      "unreachable": "No se puede acceder al servidor en este momento. Inténtalo de nuevo más tarde."
-    }
+    "heading": "Explorar"
   },
   "signin": {
     "title": "Iniciar sesión",
@@ -23,7 +21,108 @@
     "error": {
       "failed": "No se pudo iniciar sesión. Inténtalo de nuevo.",
       "denied": "Tu cuenta no tiene acceso a r16a-stream. Pide a un administrador que te añada.",
-      "unavailable": "No se puede acceder al servidor en este momento. Inténtalo más tarde."
+      "unavailable": "No se puede acceder al servidor en este momento. Inténtalo más tarde.",
+      "setup": "El inicio de sesión aún no está bien configurado. Avisa a un administrador y facilítale la referencia de abajo."
+    },
+    "reference": "Referencia"
+  },
+  "catalog": {
+    "kind": {
+      "movie": "Película",
+      "show": "Serie"
+    },
+    "search": {
+      "label": "Buscar",
+      "button": "Buscar"
+    },
+    "filter": {
+      "type": "Tipo",
+      "genre": "Género",
+      "sort": "Orden",
+      "all": "Todos"
+    },
+    "sort": {
+      "recent": "Añadidos recientemente",
+      "az": "De la A a la Z"
+    },
+    "loading": "Cargando…",
+    "error": "Algo salió mal. Inténtalo de nuevo.",
+    "empty": "Todavía no hay nada aquí.",
+    "results": "Títulos",
+    "more": "Mostrar más"
+  },
+  "title": {
+    "pageTitle": "Título",
+    "missing": "Este título no existe o no está disponible.",
+    "runtime": "{{minutes}} min",
+    "genres": "Géneros",
+    "credits": "Reparto y equipo",
+    "role": {
+      "cast": "Reparto",
+      "director": "Dirección",
+      "creator": "Creación",
+      "writer": "Guion"
+    },
+    "episodes": "Episodios",
+    "seasons": "Temporadas",
+    "specials": "Especiales",
+    "season": "Temporada {{number}}",
+    "episode": "Episodio {{number}}"
+  },
+  "admin": {
+    "titles": {
+      "heading": "Títulos",
+      "new": "Nuevo título",
+      "edit": "Editar título"
+    },
+    "status": {
+      "label": "Estado",
+      "draft": "Borrador",
+      "published": "Publicado"
+    },
+    "field": {
+      "name": "Nombre",
+      "originalName": "Nombre original",
+      "kind": "Tipo",
+      "year": "Año",
+      "runtime": "Duración en minutos",
+      "overview": "Sinopsis",
+      "number": "Número"
+    },
+    "tmdb": {
+      "ref": "Enlace o id de TMDB",
+      "kind": "Tipo para un id",
+      "fromLink": "Según el enlace",
+      "lookup": "Buscar"
+    },
+    "draft": {
+      "structure": "Se crearán {seasons, plural, one {# temporada} other {# temporadas}} con {episodes, plural, one {# episodio} other {# episodios}}."
+    },
+    "saveDraft": "Guardar como borrador",
+    "save": "Guardar",
+    "saved": "Guardado.",
+    "publish": "Publicar",
+    "unpublish": "Retirar",
+    "delete": "Eliminar",
+    "remove": "Quitar",
+    "confirmDelete": "¿Eliminar definitivamente? No se puede deshacer.",
+    "addSeason": "Añadir temporada",
+    "addEpisode": "Añadir episodio",
+    "back": "Volver a los títulos",
+    "error": {
+      "notFound": "No encontrado.",
+      "conflict": "Ya existe.",
+      "invalid": "Revisa los campos.",
+      "tooMany": "Demasiadas solicitudes, espera un momento.",
+      "unavailable": "No se puede acceder a TMDB en este momento."
+    },
+    "images": {
+      "heading": "Imágenes",
+      "poster": "Póster de TMDB",
+      "backdrop": "Fondo de TMDB",
+      "note": "Las imágenes se descargan al guardar y aparecen cuando se han procesado.",
+      "removePoster": "Quitar póster",
+      "removeBackdrop": "Quitar fondo"
     }
   }
 }

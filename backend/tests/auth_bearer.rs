@@ -216,10 +216,23 @@ async fn revoke_sessions_cuts_tokens_in_hand_and_writes_audit(pool: PgPool) {
     assert_eq!(res.status(), StatusCode::NO_CONTENT);
 
     assert_eq!(api.me(&user_token).await.status(), StatusCode::UNAUTHORIZED);
-    // A token issued after the revocation, as the app gets on its next refresh, works again.
-    let mut later = api.idp.mobile_claims("tess", true, false);
-    later["iat"] = json!(idp::now() + 2);
-    assert_eq!(api.me(&idp::sign(&later)).await.status(), StatusCode::OK);
+    // A refresh after the revocation keeps the old auth_time, so it does not bring access back.
+    let mut refreshed = api.idp.mobile_claims("tess", true, false);
+    refreshed["iat"] = json!(idp::now() + 2);
+    // As Authentik does, the refreshed token keeps the sign-in time from before the revocation.
+    // Set explicitly, a fresh now() could fall into the next second and look like a new sign-in.
+    refreshed["auth_time"] = json!(idp::now() - 5);
+    assert_eq!(api.me(&idp::sign(&refreshed)).await.status(), StatusCode::UNAUTHORIZED);
+    let mut no_auth_time = refreshed.clone();
+    no_auth_time.as_object_mut().unwrap().remove("auth_time");
+    assert_eq!(
+        api.me(&idp::sign(&no_auth_time)).await.status(),
+        StatusCode::UNAUTHORIZED
+    );
+    // Only a new interactive sign-in, with a new auth_time, works again.
+    let mut signed_in_again = refreshed;
+    signed_in_again["auth_time"] = json!(idp::now() + 2);
+    assert_eq!(api.me(&idp::sign(&signed_in_again)).await.status(), StatusCode::OK);
 
     let (action, actor): (String, Option<uuid::Uuid>) = sqlx::query_as("select action, actor_id from audit_log")
         .fetch_one(&api.state.db)

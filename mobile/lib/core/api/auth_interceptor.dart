@@ -6,10 +6,18 @@ import '../auth/token_manager.dart';
 /// single-flight lock, and repeats the call. A second 401 or a refused refresh ends the
 /// session through the token manager (SPEC 6.4).
 class AuthInterceptor extends Interceptor {
-  AuthInterceptor(this._tokens, this._dio);
+  AuthInterceptor(this._tokens, this._dio, String apiBaseUrl)
+    : _apiOrigin = Uri.parse(apiBaseUrl).origin;
 
   final TokenManager _tokens;
   final Dio _dio;
+
+  /// The token goes only to the API itself. Presigned media and image URLs point at the bucket
+  /// paths or other hosts, and `Authorization` must never reach Garage (SPEC 10.3).
+  final String _apiOrigin;
+
+  bool _isApi(RequestOptions o) =>
+      o.uri.hasScheme && o.uri.origin == _apiOrigin;
 
   static const _retried = 'r16a.retried';
 
@@ -18,7 +26,7 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    final token = await _tokens.accessToken();
+    final token = _isApi(options) ? await _tokens.accessToken() : null;
     if (token != null) {
       options.headers['Authorization'] = 'Bearer $token';
     }
@@ -31,7 +39,9 @@ class AuthInterceptor extends Interceptor {
     ErrorInterceptorHandler handler,
   ) async {
     final req = err.requestOptions;
-    if (err.response?.statusCode != 401 || req.extra[_retried] == true) {
+    if (err.response?.statusCode != 401 ||
+        req.extra[_retried] == true ||
+        !_isApi(req)) {
       return handler.next(err);
     }
     try {

@@ -170,6 +170,8 @@ jobs:
             echo "R16A_OIDC_WEB_CLIENT_ID=r16a-stream-dev"
             echo "R16A_OIDC_MOBILE_CLIENT_ID=r16a-stream-mobile-dev"
             echo "R16A_OIDC_WEB_CLIENT_SECRET=${OIDC_SECRET:-$(gen 32)}"
+            # TMDB is only called by the admin lookup, which the CSP check does not reach.
+            echo "R16A_TMDB_TOKEN=$(gen 32)"
           } > .env
           docker compose up -d --build --wait
           echo "R16A_E2E_BASE_URL=http://127.0.0.1:$(docker compose port web 8080 | cut -d: -f2)" >> "$GITHUB_ENV"
@@ -178,7 +180,7 @@ jobs:
         run: |
           docker run --rm --network host --ipc=host --user "$(id -u):$(id -g)" -e HOME=/tmp -e CI=1 \
             -e R16A_E2E_BASE_URL -v "$GITHUB_WORKSPACE:/work" -w /work \
-            mcr.microsoft.com/playwright:v1.65.1-noble@sha256:1507cbfc550a63a6b7396791ca4f00df17beb56342d2447b3f106c306f525579 \
+            mcr.microsoft.com/playwright:v1.65.0-noble@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe \
             sh -c "npm ci --no-audit --no-fund && cd web && npx playwright test e2e/csp.spec.ts"
 
       - name: Stop the stack

@@ -1,0 +1,149 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select id, kind, name, original_name, overview, year, runtime_minutes, tmdb_id, status,\n                poster_image_id, backdrop_image_id\n         from titles where id = $1 and (not $2 or status = 'published')",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "titles",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "titles",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "titles",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "original_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "titles",
+            "name": "original_name"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "overview",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "titles",
+            "name": "overview"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "year",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "titles",
+            "name": "year"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "runtime_minutes",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "titles",
+            "name": "runtime_minutes"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "tmdb_id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "titles",
+            "name": "tmdb_id"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "titles",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "poster_image_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "titles",
+            "name": "poster_image_id"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "backdrop_image_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "titles",
+            "name": "backdrop_image_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "8d930ff4c216bbb25e52d67182669dd560ff4bcbd3228e8e9ec04d2292b61b3c"
+}

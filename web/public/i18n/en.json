@@ -4,16 +4,14 @@
   },
   "shell": {
     "skipToContent": "Skip to content",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "nav": "Main",
+    "browse": "Browse",
+    "admin": "Admin"
   },
   "home": {
     "title": "Home",
-    "heading": "Welcome",
-    "api": {
-      "checking": "Checking the connection to the server…",
-      "reachable": "Connected to the server.",
-      "unreachable": "The server cannot be reached right now. Please try again later."
-    }
+    "heading": "Browse"
   },
   "signin": {
     "title": "Sign in",
@@ -23,7 +21,108 @@
     "error": {
       "failed": "Signing in did not work. Please try again.",
       "denied": "Your account does not have access to r16a-stream. Ask an administrator to add you.",
-      "unavailable": "The server cannot be reached right now. Please try again later."
+      "unavailable": "The server cannot be reached right now. Please try again later.",
+      "setup": "Sign-in is not set up correctly yet. Please tell an administrator and give them the reference below."
+    },
+    "reference": "Reference"
+  },
+  "catalog": {
+    "kind": {
+      "movie": "Movie",
+      "show": "Show"
+    },
+    "search": {
+      "label": "Search",
+      "button": "Search"
+    },
+    "filter": {
+      "type": "Type",
+      "genre": "Genre",
+      "sort": "Sort",
+      "all": "All"
+    },
+    "sort": {
+      "recent": "Recently added",
+      "az": "A to Z"
+    },
+    "loading": "Loading…",
+    "error": "Something went wrong. Please try again.",
+    "empty": "Nothing here yet.",
+    "results": "Titles",
+    "more": "Show more"
+  },
+  "title": {
+    "pageTitle": "Title",
+    "missing": "This title does not exist or is not available.",
+    "runtime": "{{minutes}} min",
+    "genres": "Genres",
+    "credits": "Cast and crew",
+    "role": {
+      "cast": "Cast",
+      "director": "Director",
+      "creator": "Creator",
+      "writer": "Writer"
+    },
+    "episodes": "Episodes",
+    "seasons": "Seasons",
+    "specials": "Specials",
+    "season": "Season {{number}}",
+    "episode": "Episode {{number}}"
+  },
+  "admin": {
+    "titles": {
+      "heading": "Titles",
+      "new": "New title",
+      "edit": "Edit title"
+    },
+    "status": {
+      "label": "Status",
+      "draft": "Draft",
+      "published": "Published"
+    },
+    "field": {
+      "name": "Name",
+      "originalName": "Original name",
+      "kind": "Type",
+      "year": "Year",
+      "runtime": "Runtime in minutes",
+      "overview": "Overview",
+      "number": "Number"
+    },
+    "tmdb": {
+      "ref": "TMDB link or id",
+      "kind": "Type for an id",
+      "fromLink": "From the link",
+      "lookup": "Look up"
+    },
+    "draft": {
+      "structure": "{seasons, plural, one {# season} other {# seasons}} with {episodes, plural, one {# episode} other {# episodes}} will be created."
+    },
+    "saveDraft": "Save as draft",
+    "save": "Save",
+    "saved": "Saved.",
+    "publish": "Publish",
+    "unpublish": "Unpublish",
+    "delete": "Delete",
+    "remove": "Remove",
+    "confirmDelete": "Delete this for good? This cannot be undone.",
+    "addSeason": "Add season",
+    "addEpisode": "Add episode",
+    "back": "Back to titles",
+    "error": {
+      "notFound": "Not found.",
+      "conflict": "That exists already.",
+      "invalid": "Please check the fields.",
+      "tooMany": "Too many requests, wait a moment.",
+      "unavailable": "TMDB cannot be reached right now."
+    },
+    "images": {
+      "heading": "Images",
+      "poster": "Poster from TMDB",
+      "backdrop": "Backdrop from TMDB",
+      "note": "Images are downloaded when you save and appear once they are processed.",
+      "removePoster": "Remove poster",
+      "removeBackdrop": "Remove backdrop"
     }
   }
 }

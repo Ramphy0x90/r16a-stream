@@ -124,6 +124,7 @@ services:
       R16A_OIDC_MOBILE_ISSUER: ${R16A_OIDC_MOBILE_ISSUER:-}
       R16A_OIDC_MOBILE_CLIENT_ID: ${R16A_OIDC_MOBILE_CLIENT_ID:-r16a-stream-mobile-dev}
       R16A_SESSION_KEY: BwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSY=
+      R16A_TMDB_TOKEN: ${R16A_TMDB_TOKEN:-}
     ports:
       - "127.0.0.1:8081:8081"
     depends_on:

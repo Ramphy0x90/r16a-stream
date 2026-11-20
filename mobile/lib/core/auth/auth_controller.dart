@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/api_client.dart';
+import '../api/generated/models/me_response.dart';
 import '../config.dart';
 import 'oidc_client.dart';
 import 'token_manager.dart';
@@ -36,7 +37,7 @@ final apiClientProvider = Provider<Dio>(
   ),
 );
 
-/// The part of `GET /api/v1/me` the shell needs before generated models exist.
+/// The part of `GET /api/v1/me` the shell needs, read through the generated `MeResponse`.
 class Me {
   const Me({required this.displayName, required this.isAdmin});
 
@@ -122,13 +123,8 @@ class AuthController extends Notifier<AuthState> {
       final res = await ref
           .read(apiClientProvider)
           .get<Map<String, dynamic>>('/api/v1/me');
-      final data = res.data ?? const {};
-      return SignedIn(
-        Me(
-          displayName: data['displayName'] as String? ?? '',
-          isAdmin: data['isAdmin'] as bool? ?? false,
-        ),
-      );
+      final me = MeResponse.fromJson(res.data ?? const {});
+      return SignedIn(Me(displayName: me.displayName, isAdmin: me.isAdmin));
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
         await _tokens.signOut();

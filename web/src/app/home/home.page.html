@@ -1,4 +1,65 @@
 <h1>{{ 'home.heading' | transloco }}</h1>
-<p class="status" [class]="api()" role="status">
-  {{ 'home.api.' + api() | transloco }}
-</p>
+
+<div class="filters">
+  <form class="search" role="search" (submit)="search($event)">
+    <label class="field">
+      <span>{{ 'catalog.search.label' | transloco }}</span>
+      <input name="q" type="search" maxlength="200" [value]="q() ?? ''" />
+    </label>
+    <button class="btn" type="submit">{{ 'catalog.search.button' | transloco }}</button>
+  </form>
+
+  <label class="field">
+    <span>{{ 'catalog.filter.type' | transloco }}</span>
+    <select [value]="type() ?? ''" (change)="setFilter('type', valueOf($event))">
+      <option value="">{{ 'catalog.filter.all' | transloco }}</option>
+      <option value="movie">{{ 'catalog.kind.movie' | transloco }}</option>
+      <option value="show">{{ 'catalog.kind.show' | transloco }}</option>
+    </select>
+  </label>
+
+  <label class="field">
+    <span>{{ 'catalog.filter.genre' | transloco }}</span>
+    <select [value]="genre() ?? ''" (change)="setFilter('genre', valueOf($event))">
+      <option value="">{{ 'catalog.filter.all' | transloco }}</option>
+      @for (g of genres(); track g.id) {
+        <option [value]="g.slug">{{ g.name }}</option>
+      }
+    </select>
+  </label>
+
+  <label class="field">
+    <span>{{ 'catalog.filter.sort' | transloco }}</span>
+    <select [value]="sort() ?? 'recent'" (change)="setFilter('sort', valueOf($event))">
+      <option value="recent">{{ 'catalog.sort.recent' | transloco }}</option>
+      <option value="az">{{ 'catalog.sort.az' | transloco }}</option>
+    </select>
+  </label>
+</div>
+
+@switch (state()) {
+  @case ('error') {
+    <p class="error-text" role="alert">{{ 'catalog.error' | transloco }}</p>
+  }
+  @case ('loading') {
+    <p role="status">{{ 'catalog.loading' | transloco }}</p>
+  }
+  @default {
+    @if (items().length === 0) {
+      <p role="status">{{ 'catalog.empty' | transloco }}</p>
+    } @else {
+      <ul class="grid" [attr.aria-label]="'catalog.results' | transloco">
+        @for (t of items(); track t.id) {
+          <li><app-title-card [title]="t" /></li>
+        }
+      </ul>
+      @if (hasMore()) {
+        <div class="more" (appInView)="loadMore()">
+          <button class="btn" type="button" (click)="loadMore()">
+            {{ 'catalog.more' | transloco }}
+          </button>
+        </div>
+      }
+    }
+  }
+}

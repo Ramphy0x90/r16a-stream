@@ -4,7 +4,9 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { SessionService } from '../core/auth/session.service';
 
 /** Errors the BFF and the guard put in the URL. Anything else shows no message. */
-const KNOWN_ERRORS = ['failed', 'denied', 'unavailable'] as const;
+const KNOWN_ERRORS = ['failed', 'denied', 'unavailable', 'setup'] as const;
+/** The API's request id, the only form a setup reference can take. */
+const REFERENCE = /^[0-9a-f]{32}$/;
 type SigninError = (typeof KNOWN_ERRORS)[number];
 
 /**
@@ -24,10 +26,22 @@ export class SigninPage {
   /** Bound from the query string. */
   readonly error = input<string | undefined>();
   readonly returnTo = input<string | undefined>();
+  /** Bound from `ref`. Names the log line that says which Authentik setting is missing. */
+  readonly ref = input<string | undefined>();
 
   readonly message = computed<SigninError | null>(() => {
     const e = this.error();
     return KNOWN_ERRORS.find((k) => k === e) ?? null;
+  });
+
+  /**
+   * Shown only for setup errors and only in the request id format, so the page never displays
+   * arbitrary text from the URL. The reference itself reveals nothing, an admin looks it up in
+   * the API logs.
+   */
+  readonly reference = computed(() => {
+    const r = this.ref();
+    return this.message() === 'setup' && r !== undefined && REFERENCE.test(r) ? r : null;
   });
 
   signIn(): void {

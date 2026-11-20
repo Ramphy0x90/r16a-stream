@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update titles set status = 'published', listed_at = coalesce(listed_at, now()), updated_at = now()\n         where id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7e620efc6f5f4c5a6f19ee40fed5be10dc94b8bc1b41b80a547832d96000e5d3"
+}

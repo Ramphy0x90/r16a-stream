@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "insert into image_variants (image_id, format, width, height, object_key, byte_size)\n             values ($1, $2, $3, $4, $5, $6)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Int2",
+        "Int2",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "56372b9e60452812c1780cb8eb41230e78c0eb7bde26cdf1b6f7a3feeb62b75b"
+}

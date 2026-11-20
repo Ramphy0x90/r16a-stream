@@ -1,0 +1,55 @@
+<div class="bar">
+  <h1>{{ 'admin.titles.heading' | transloco }}</h1>
+  <a class="btn btn-primary" routerLink="/admin/titles/new">{{ 'admin.titles.new' | transloco }}</a>
+</div>
+
+<div class="filters">
+  <form class="inline" role="search" (submit)="search($event)">
+    <label class="field">
+      <span>{{ 'catalog.search.label' | transloco }}</span>
+      <input name="q" type="search" maxlength="200" [value]="query()" />
+    </label>
+    <button class="btn" type="submit">{{ 'catalog.search.button' | transloco }}</button>
+  </form>
+  <label class="field">
+    <span>{{ 'admin.status.label' | transloco }}</span>
+    <select [value]="status()" (change)="setStatus($event)">
+      <option value="">{{ 'catalog.filter.all' | transloco }}</option>
+      <option value="draft">{{ 'admin.status.draft' | transloco }}</option>
+      <option value="published">{{ 'admin.status.published' | transloco }}</option>
+    </select>
+  </label>
+</div>
+
+@if (failed()) {
+  <p class="error-text" role="alert">{{ 'catalog.error' | transloco }}</p>
+}
+<table class="table">
+  <thead>
+    <tr>
+      <th scope="col">{{ 'admin.field.name' | transloco }}</th>
+      <th scope="col">{{ 'admin.field.kind' | transloco }}</th>
+      <th scope="col">{{ 'admin.field.year' | transloco }}</th>
+      <th scope="col">{{ 'admin.status.label' | transloco }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (r of rows(); track r.id) {
+      <tr>
+        <td>
+          <a [routerLink]="['/admin/titles', r.id]">{{ r.name }}</a>
+        </td>
+        <td>{{ 'catalog.kind.' + r.kind | transloco }}</td>
+        <td>{{ r.year ?? '' }}</td>
+        <td>{{ 'admin.status.' + r.status | transloco }}</td>
+      </tr>
+    } @empty {
+      <tr>
+        <td colspan="4">{{ 'catalog.empty' | transloco }}</td>
+      </tr>
+    }
+  </tbody>
+</table>
+@if (next()) {
+  <button class="btn" type="button" (click)="more()">{{ 'catalog.more' | transloco }}</button>
+}

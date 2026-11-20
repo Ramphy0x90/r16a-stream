@@ -320,7 +320,7 @@ create table episodes (
 create index episodes_title_idx on episodes (title_id);
 ```
 
-The composite keys make it impossible to attach a season to a movie or to change a show with seasons into a movie, at the database level.
+The composite keys make it impossible to attach a season to a movie or to change a show with seasons into a movie, at the database level (checked in Phase 3). The migration adds `check (kind = 'movie' or runtime_minutes is null)`, `titles_kind_name_idx` for A to Z with a type filter, `titles_admin_idx (updated_at desc, id desc)` for the admin list and `tmdb_cache_expiry_idx`. Images and image variants exist as tables from Phase 3a, the pipeline that fills them is Phase 3b.
 
 ### 4.5 Variants, uploads, attempts, renditions, subtitles
 
@@ -672,7 +672,7 @@ The worker has no access to `users`, `sessions`, `oidc_flows`, `comments`, `list
 
 ### 4.10 Hot queries and their indexes
 
-Every query below must be p95 under 50 ms at the database level. Phase 3 and 6 add `cargo run --bin api -- seed --bench`, which loads the scale from section 1, and record `EXPLAIN (ANALYZE, BUFFERS)` output in `docs/perf/queries.md`. No result is recorded yet, nothing exists to measure.
+Every query below must be p95 under 50 ms at the database level. `cargo run --bin api -- seed --bench` (Phase 3) loads the scale from section 1, runs `EXPLAIN (ANALYZE, BUFFERS)` and removes its data. Results and plans are in `docs/perf/queries.md`, H1 to H5, H8 and H9 so far, all below 4 ms. Phase 6 adds H6, H7, H10 to H13.
 
 | # | Query | Shape | Index |
 |---|---|---|---|
@@ -721,7 +721,7 @@ Legend: **C** caller (any signed-in user), **A** admin, **P** playback token in 
 | `GET /me` | C | id, display name, admin flag, settings |
 | `PATCH /me/settings` | C | theme, UI language, preferred audio language |
 | `GET /users?q=` | C | find users to share a list with, display name only, min 2 characters |
-| `GET /genres` | C | genres with slugs |
+| `GET /genres` | C | genres with slugs, ordered by name |
 | `GET /languages` | C | content languages that have ready variants |
 | `GET /titles?type&genre&language&q&sort&cursor&limit` | C | home grid and search |
 | `GET /home/continue-watching` | C | up to 20 cards with progress |
@@ -752,10 +752,12 @@ Legend: **C** caller (any signed-in user), **A** admin, **P** playback token in 
 | `GET /admin/storage` | A | write health (api and worker), Garage nodes up, used, free and total per node, logical free space, reserved bytes, warning flag (7.10) |
 | `GET /admin/storage/titles?cursor` | A | storage per title, largest first, keyset on `(bytes, id)` |
 | `GET /admin/titles/{id}/storage` | A | storage per variant of one title: current attempt, attempts awaiting GC, source if kept, subtitles, images |
-| `GET /admin/tmdb/lookup?ref=` | A | parse a TMDB link or id, return a prefilled draft |
-| `POST /admin/titles`, `PATCH /admin/titles/{id}`, `DELETE ...` | A | manual or TMDB-prefilled title |
+| `GET /admin/tmdb/lookup?ref=&kind=` | A | parse a TMDB link or id, return a prefilled draft in the shape of `POST /admin/titles` |
+| `GET /admin/titles?status&q&cursor&limit`, `GET /admin/titles/{id}` | A | every title, drafts included, last changed first, and one title with its seasons and episodes for the editor (added in Phase 3) |
+| `POST /admin/titles`, `PATCH /admin/titles/{id}`, `DELETE ...` | A | manual or TMDB-prefilled title. Create takes genres, credits, seasons and episodes in one request, body limit 2 MiB |
+| `POST /admin/genres` | A | a genre for titles entered by hand, `{ name }`, slug derived (added in Phase 3) |
 | `POST /admin/titles/{id}/publish`, `POST .../unpublish` | A | visibility |
-| `POST /admin/titles/{id}/seasons`, `PATCH /admin/seasons/{id}`, episodes likewise | A | show structure |
+| `POST /admin/titles/{id}/seasons`, `PATCH /admin/seasons/{id}`, `DELETE /admin/seasons/{id}`, `POST /admin/seasons/{id}/episodes`, `PATCH /admin/episodes/{id}`, `DELETE /admin/episodes/{id}` | A | show structure. A season on a movie is `409 not-a-show`, a taken number `409` |
 | `POST /admin/variants`, `DELETE /admin/variants/{id}` | A | a language for a movie or an episode |
 | `POST /admin/variants/{id}/uploads` | A | start multipart upload `{ fileName, sizeBytes, durationSeconds? }`, `507 insufficient_storage` when the estimate does not fit (7.10), `503 storage_degraded` |
 | `POST /admin/uploads/{id}/parts` | A | presigned part URLs `{ partNumbers: [..] }`, at most 50 per call |
@@ -803,33 +805,55 @@ The provider name equals the application slug, so the issuer and the end-session
 - `r16a-stream-users`, may sign in.
 - `r16a-stream-admins`, admin. Admins must also be in `r16a-stream-users`.
 
-**Scope mapping** (Customization, Property Mappings, Create, Scope Mapping), shared by all four providers
-- Name `r16a-stream: access claims`, scope name `r16a-stream`, description empty.
-- Expression:
+**Scope mappings** (Customization, Property Mappings, Create, Scope Mapping). Two of them, both with scope name `r16a-stream`, so the CI groups can never reach the production applications (DECISIONS 051, 075).
+
+| Name | Scope name | Selected on | Groups that count |
+|---|---|---|---|
+| `r16a-stream: access claims` | `r16a-stream` | `r16a-stream`, `r16a-stream-mobile` | `r16a-stream-users`, `r16a-stream-admins` |
+| `r16a-stream-dev: access claims` | `r16a-stream` | `r16a-stream-dev`, `r16a-stream-mobile-dev` | the same, plus `r16a-stream-ci-users`, `r16a-stream-ci-admins` |
+
+Production expression:
 
 ```python
+active = request.user.is_active
 return {
-    "r16a_stream_user": request.user.is_active
-        and ak_is_group_member(request.user, name="r16a-stream-users"),
-    "r16a_stream_admin": request.user.is_active
-        and ak_is_group_member(request.user, name="r16a-stream-admins"),
+    "name": request.user.name,
+    "preferred_username": request.user.username,
+    "r16a_stream_user": active and ak_is_group_member(request.user, name="r16a-stream-users"),
+    "r16a_stream_admin": active and ak_is_group_member(request.user, name="r16a-stream-admins"),
 }
 ```
+
+Dev expression, identical except for the two group checks:
+
+```python
+active = request.user.is_active
+member = lambda *names: any(ak_is_group_member(request.user, name=n) for n in names)
+return {
+    "name": request.user.name,
+    "preferred_username": request.user.username,
+    "r16a_stream_user": active and member("r16a-stream-users", "r16a-stream-ci-users"),
+    "r16a_stream_admin": active and member("r16a-stream-admins", "r16a-stream-ci-admins"),
+}
+```
+
+- `name` and `preferred_username` come from this mapping, because the app does not request the `profile` scope. Authentik's default profile mapping also emits `groups` with every group name of the user, which the app must not see (DECISIONS 074).
 
 - `request.user` is the token's user in every grant, including refresh at the token endpoint (the evaluator builds `PolicyRequest(user=token.user)`), so the expression is valid on refresh.
 - `ak_is_group_member` checks `user.all_groups()`, so membership through a parent group also counts.
 - `is_active` is included because the refresh grant in 2026.2.1 does not check whether the user is still active.
-- Neither claim reveals any other group name (C3).
+- The mapping reveals no group name (C3). No provider has the default `profile` or `email` mapping selected, so a client cannot ask for them either. The API logs a warning at startup when a provider offers them.
+- Authentik only runs the mappings of scopes the client requested **and** the provider has selected, and silently drops a requested scope the provider lacks. A missing `offline_access` mapping therefore shows up as a token response without a refresh token, and a missing `r16a-stream` mapping as tokens without the two claims. The discovery document's `scopes_supported` lists exactly the selected mappings, which the API checks (6.3).
 
 **Settings common to all four providers** (OAuth2/OpenID Provider)
 
 | Setting | Value | Why |
 |---|---|---|
-| Authorization flow | `default-provider-authorization-implicit-consent` | internal app, no consent screen |
+| Authorization flow | web providers `default-provider-authorization-implicit-consent`. Mobile providers `r16a-stream-mobile-authorization`, a flow with one Consent stage in mode `always_require` | the web redirect goes to an exact https URI, so no other party can receive the code. The mobile redirect is a custom scheme that any Android app can also register. With silent consent a malicious app could start its own flow in a Custom Tab, ride on the Authentik browser session and receive a code for its own PKCE verifier. An explicit consent screen on every mobile login stops that. The default explicit-consent flow remembers consent for 4 weeks, so it is not enough (T-AUTH-11) |
 | Invalidation flow | the provider's own logout flow, `r16a-stream-logout` and so on (6.1.1) | ends the Authentik session and sends the user back to the app, without touching the default flows |
 | Signing key | an RSA certificate, for example `authentik Self-signed Certificate` | without a key Authentik signs with HS256 and the client secret, and public clients have no secret |
 | Encryption key | none | tokens are JWS, not JWE |
-| Scopes | `openid`, `profile`, `offline_access`, `r16a-stream` | no `email`, the app never needs it. `offline_access` is required for refresh tokens |
+| Scopes (selected mappings) | `authentik default OAuth Mapping: OpenID 'openid'`, `authentik default OAuth Mapping: OpenID 'offline_access'`, and that provider's `r16a-stream` mapping from the table above. Nothing else | without `offline_access` there is no refresh token. No `profile` and no `email`, they would put group names and the address into tokens |
 | Subject mode | Based on the User's hashed ID (default) | stable, opaque, users are keyed by `sub` |
 | Include claims in id_token | **on** (default) | in 2026.2.1 this flag also decides whether mapped claims appear in the JWT access token, which mobile needs |
 | Issuer mode | Each provider has a different issuer (default) | `iss` pins the provider |
@@ -891,10 +915,11 @@ sequenceDiagram
 ```
 
 - `returnTo` must be a same-origin absolute path that starts with a single `/` and contains no backslash, whitespace, control character or scheme. Anything else becomes `/`.
+- **Setup errors.** Before redirecting to Authentik, the API checks that the provider's `scopes_supported` contains `openid`, `offline_access` and `r16a-stream`. At the callback, a token response without a refresh token, or an ID token without the `r16a_stream_user` claim at all (as opposed to `false`), is a setup error too. All three redirect to `/signin?error=setup&ref=<request id>`. The page shows the same neutral text to everyone plus the reference, and the API logs the exact missing setting under that request id, so an admin learns what to fix from the logs without the page telling anonymous visitors how Authentik is configured. At startup the API logs the same check for both providers. At most 10 000 login flows are kept alive at once, beyond that `GET /auth/login` answers 503.
 - A failed callback (missing or foreign flow cookie, unknown or expired state, provider error, nonce or token check failed) redirects to `/signin?error=failed`. A token without `r16a_stream_user = true`, or a disabled user, redirects to `/signin?error=denied` after revoking the new refresh token. The reason is logged, never shown. `GET /auth/login` answers 503 while Authentik's discovery document cannot be fetched.
 - Session cookie value is 32 random bytes, base64url. Only its SHA-256 is stored. Cookie attributes `HttpOnly; Secure; SameSite=Strict; Path=/`, prefix `__Host-` (see C1 for why the path is `/`).
 - Idle lifetime 7 days, absolute 30 days, sliding refresh of `last_seen_at` at most once per minute.
-- **Claim refresh.** When `claims_refreshed_at` is older than 5 minutes (the access token lifetime), the next request refreshes. It takes the session row with `select ... for update`, re-checks `claims_refreshed_at` (another request or replica may have refreshed meanwhile), and only then calls the token endpoint, so one session never refreshes twice in parallel. This matters because Authentik rotates refresh tokens and a second use of the old one fails (6.1 point 4). The new refresh token is sealed and stored in the same transaction. A new ID token updates `is_admin`. If refresh fails with `invalid_grant`, or `r16a_stream_user` is false, the session is deleted and the request gets 401. Network failure to Authentik keeps the session for up to 1 hour past the refresh time and then fails closed with 503, keeping the row so the session resumes when Authentik is back. A refreshed ID token whose `sub` differs from the session's user, or that fails verification, ends the session.
+- **Claim refresh.** When `claims_refreshed_at` is older than 5 minutes (the access token lifetime), the next request refreshes. It takes a 30 second refresh lease with one `UPDATE ... WHERE refresh_lease_until is null or < now()`, so exactly one request per session refreshes while the others keep the last claims, and no database lock or connection is held during the call to Authentik (DECISIONS 075). The call and the write of the result run in a spawned task, so a client hanging up cannot lose the rotated refresh token. This matters because Authentik rotates refresh tokens and a second use of the old one fails (6.1 point 4). The new refresh token is sealed and stored in the same transaction. A new ID token updates `is_admin`. Only `invalid_grant`, a lost access claim and a changed `sub` end the session (401, refresh token revoked). Everything else counts as an outage: unreachable Authentik, 5xx, 429, `invalid_client`, a non-JSON error page, a refreshed ID token that does not verify yet (for example during a key rotation, the rotated refresh token is kept). An outage keeps the session for up to 1 hour past the refresh time and then fails closed with 503, keeping the row so the session resumes when Authentik is back. After an outage the lease makes the session wait 30 seconds before trying again, and the provider fails fast for 30 seconds instead of every request waiting for the timeout.
 - **CSRF.** State-changing cookie requests need the header `X-R16a-Request: 1` and an `Origin` equal to the configured public origin. Same as Zaltys decision 017. The API sends no CORS headers.
 - **Logout.** `POST /auth/logout` deletes the session row, revokes the refresh token at Authentik's revocation endpoint, clears the cookie, and returns `endSessionUrl` (`https://<authentik>/application/o/<slug>/end-session/`, no parameters, see 6.1 point 5). The web app navigates there. Authentik ends its own session and its logout flow redirects back to the app's start page, which then shows the signed-out state (6.1.1).
 - `R16A_DEV_INSECURE_COOKIE=true` drops `Secure` and the `__Host-` prefix for plain HTTP on localhost. Startup refuses it when the public URL is https. This is the Zaltys mechanism and is not an authorisation bypass, login still goes through Authentik.
@@ -907,7 +932,7 @@ sequenceDiagram
   participant App as Flutter app
   participant AK as Authentik
   participant A as API
-  App->>AK: authorize via system browser (ASWebAuthenticationSession, Custom Tabs)<br/>PKCE S256, state, nonce, scopes openid profile offline_access r16a-stream
+  App->>AK: authorize via system browser (ASWebAuthenticationSession, Custom Tabs)<br/>PKCE S256, state, nonce, scopes openid offline_access r16a-stream
   AK-->>App: cloud.r16a.stream:/oauth2redirect?code&state
   App->>AK: token request (code, verifier, public client)
   AK-->>App: access token (JWT, 5 min), refresh token (30 days), ID token
@@ -920,7 +945,7 @@ sequenceDiagram
 - JWKS is fetched from the discovery document on startup and cached. An unknown `kid` triggers one refetch, rate limited to once per minute, so key rotation works and an attacker cannot force a refetch storm.
 - **Access token versus ID token.** In Authentik both are JWTs with the same `aud` (the client id) and the same claims. Only the access token carries a `scope` claim. The API requires `scope` to contain `r16a-stream`, so an ID token presented as a bearer token is refused.
 - Admin is read from the token on every request. Because the access token lives 5 minutes and Authentik re-runs the scope mapping on refresh, an admin removal or a removal from the users group takes effect within 5 minutes without any action. Revocation (6.8) makes it immediate.
-- Every bearer token's `iat` is compared with the user's `sessions_revoked_at` and refused if not later.
+- Every bearer token's `auth_time` is compared with the user's `sessions_revoked_at` and refused if not later. Authentik copies `auth_time` unchanged into every refreshed token, so a refresh does not undo a revocation, only a new interactive sign-in does. A token without `auth_time` is refused once the user has a revocation.
 - **Refresh.** The dio interceptor refreshes once on 401 or shortly before expiry, behind a single-flight lock, and stores the rotated refresh token before using the new access token (6.1 point 4). A refresh that fails with `invalid_grant` signs the user out.
 - Tokens are stored with `flutter_secure_storage`, iOS accessibility `first_unlock_this_device`, Android encrypted shared preferences backed by the keystore. Android backups are off.
 - Logout deletes the stored tokens, calls Authentik's revocation endpoint for the refresh token, and opens the end-session endpoint in the system browser through `flutter_appauth`'s end-session call, so the Authentik browser session ends too and the mobile logout flow returns to the app (6.1.1).
@@ -944,8 +969,10 @@ Playwright logs in through the real Authentik login against the **ephemeral stac
 
 | User | Groups | Purpose |
 |---|---|---|
-| `r16a-stream-ci-user` | `r16a-stream-users` only | member flows: browse, play, list, request |
-| `r16a-stream-ci-admin` | `r16a-stream-users`, `r16a-stream-admins` | admin flows: upload, publish, moderate |
+| `r16a-stream-ci-user` | `r16a-stream-ci-users` only | member flows: browse, play, list, request |
+| `r16a-stream-ci-admin` | `r16a-stream-ci-users`, `r16a-stream-ci-admins` | admin flows: upload, publish, moderate |
+
+The CI groups count only in the dev mapping and are bound only to the dev applications. The production applications are bound to `r16a-stream-users` alone and their mapping ignores the CI groups, so a leaked CI password opens nothing in production even if someone adds a wrong binding later (DECISIONS 051, 075).
 
 - **No other groups, no other applications.** In Authentik an application without any policy binding is open to every user. Before the CI users are created, every other application on the instance must have a binding that excludes them. The setup checklist runs Authentik's "Check access" for both users on every application and expects a refusal everywhere except `r16a-stream-dev` (OPERATING 3.2).
 - **User type** `external`, so the users cannot open the Authentik user interface. Phase 2 confirms this type can complete an OAuth flow in 2026.2.1.
@@ -975,7 +1002,7 @@ Playwright logs in through the real Authentik login against the **ephemeral stac
 Refresh tokens last 30 days and a refresh does not re-check the group binding (6.1 point 2). Without action, a removed user loses access at their next refresh, at most 5 minutes later, because `r16a_stream_user` turns false. For an immediate cut, both sides act:
 
 - **Authentik** (removes the source of new tokens): remove the user from `r16a-stream-users` or deactivate them, then on the user's page delete their entries under Sessions, OAuth Refresh Tokens and OAuth Access Tokens. Steps in OPERATING 8.
-- **r16a-stream** (ends what is already issued): `POST /admin/users/{id}/revoke-sessions` in one transaction deletes every `sessions` row of the user and sets `users.sessions_revoked_at = now()`. The bearer extractor refuses any token with `iat <= sessions_revoked_at`, so mobile access tokens already in hand stop working at once. Audited as `user.revoke_sessions`. Admins can revoke their own sessions too.
+- **r16a-stream** (ends what is already issued): `POST /admin/users/{id}/revoke-sessions` in one transaction deletes every `sessions` row of the user and sets `users.sessions_revoked_at = now()`. The bearer extractor refuses any token whose `auth_time <= sessions_revoked_at`. That covers the access tokens in hand and every token the app gets by refreshing them, so the phone needs a new interactive sign-in. Both clocks must run NTP, a skew of δ seconds lets tokens from up to δ seconds before the revocation through. Audited as `user.revoke_sessions`. Admins can revoke their own sessions too.
 - A user still in the group can simply sign in again afterwards. Revocation ends sessions, it is not a ban. Removal from the group is the ban.
 
 ---
@@ -1186,8 +1213,11 @@ Failure is `507 insufficient_storage` with the needed and available numbers. A r
 - `GET /admin/tmdb/lookup?ref=` accepts a numeric id with `kind`, or a link of the form `https://www.themoviedb.org/movie/<id>[-slug]` or `/tv/<id>[-slug]`. Any other host or shape is 400.
 - The backend calls only `https://api.themoviedb.org/3/` (the base URL is config, the path is built by code, never from input) with the v4 read access token as a bearer header. 10 s timeout, response limit 2 MiB. Language `R16A_TMDB_LANGUAGE` (default `en-US`).
 - Movie: `/movie/{id}?append_to_response=credits,images`. Show: `/tv/{id}?append_to_response=credits,images`, then `/tv/{id}/season/{n}` per season.
-- Results are cached in `tmdb_cache` for 24 hours. Lookups are rate limited (section 16).
-- The draft is returned to the admin, who edits everything before `POST /admin/titles`. Nothing is written by the lookup.
+- Results are cached in `tmdb_cache` for 24 hours, keyed by the request path and language, purged hourly. Lookups are rate limited (section 16).
+- The draft is returned to the admin, who edits everything before `POST /admin/titles`. Nothing is written by the lookup except the cache. The draft has exactly the request shape of `POST /admin/titles`, so it posts back without a mapping.
+- Every TMDB string is cleaned of control characters and cut to its column limit, every number range checked, duplicate season and episode numbers dropped, 20 cast members kept plus directors, writers (screenplay) and creators.
+- **Genres** are not seeded. A draft carries TMDB genres as `newGenres` with their TMDB id, and saving a title finds each by TMDB id, then by slug, or creates it. Admins add genres for manual titles with `POST /admin/genres`. The slug folds Latin accents and is the translation key `genre.<slug>`, the stored name is the fallback.
+- TMDB answers 404 as 404, a refused token as 503 with an error log naming `R16A_TMDB_TOKEN`, everything else unexpected as 503.
 
 ### 8.2 Image pipeline
 
@@ -1197,6 +1227,11 @@ Failure is `507 insufficient_storage` with the needed and available numbers. A r
 4. It computes the average colour as HSL for the skeleton placeholder, uploads to `i/<image>/<width>.<fmt>`, inserts `image_variants`, and sets the image `ready`.
 
 No Rust image crate. ffmpeg already runs in the hardened worker, and reusing it keeps image decoding of untrusted files in the same sandbox (DECISIONS 017).
+
+As built in Phase 3b (DECISIONS 078):
+- The draft carries TMDB `posterPath` and `backdropPath`. Saving a title downloads them before the transaction, then writes the `images` row, its `image` job (`dedupe_key = image:<id>`, priority 10) and the title's image ids in one transaction, and `pg_notify('r16a_stream_jobs', 'image')` wakes a worker. A patch with a path replaces the image, `null` detaches it. Episode stills and manual image uploads follow in Phase 4 with the uploads table.
+- The worker probes before decoding and refuses above the limits, encodes AVIF (`libaom-av1 -still-picture 1 -crf 30 -cpu-used 6`) and WebP (`libwebp -quality 80`) per width with `scale=w:-2`, stores `Cache-Control: public, max-age=31536000, immutable`, and finishes in one transaction. A file that is not an image or is too large fails at once, a Garage problem requeues without counting, everything else retries after 1, 5, 25 minutes.
+- Every ffmpeg and ffprobe run gets `-protocol_whitelist file -format_whitelist image2,png_pipe,jpeg_pipe,webp_pipe`, an empty environment, its own process group, 60 s, and 1 MiB of captured output. `tests/images.rs` proves a playlist named `.jpg` that points at `file:///etc/passwd` is refused.
 
 ### 8.3 Image URLs for clients
 
@@ -1500,7 +1535,7 @@ All env vars start with `R16A_`. Secrets have no default. Startup refuses a miss
 | `R16A_ENV` | | both | `development`, `test`, `production` |
 | `R16A_PUBLIC_URL` | | api | `https://stream.r16a.cloud`, origin for CSRF, redirects, cookies |
 | `R16A_HTTP_BIND` | | api | `0.0.0.0:8081` |
-| `R16A_TRUSTED_PROXY_CIDRS` | | api | Traefik pod CIDR, comma list. Empty trusts no proxy, so `X-Forwarded-For` is ignored |
+| `R16A_TRUSTED_PROXY_CIDRS` | | api | Traefik pod CIDR, comma list. Required in production, otherwise every client would share Traefik's address and one client could use up the login limit for all. Empty in development trusts no proxy. Login limits key IPv6 clients by their /64 |
 | `R16A_DATABASE_URL` | yes | api | app role |
 | `R16A_WORKER_DATABASE_URL` | yes | worker | worker role. A separate name, so a shared `backend/.env` in manual mode can never give the worker the app role |
 | `R16A_MIGRATE_DATABASE_URL` | yes | migrate only | owner role |
@@ -1529,7 +1564,9 @@ All env vars start with `R16A_`. Secrets have no default. Startup refuses a miss
 | `R16A_SOURCE_RETENTION` | | api | `delete` (default) or `keep` (7.9) |
 | `R16A_SOURCE_DELETE_DELAY_HOURS` | | api | default 0 |
 | `R16A_TMDB_TOKEN` | yes | api | v4 read access token |
-| `R16A_TMDB_LANGUAGE`, `R16A_TMDB_TIMEOUT_MS` | | api | |
+| `R16A_TMDB_LANGUAGE`, `R16A_TMDB_TIMEOUT_MS` | | api | `en-US` form, default `en-US`. Timeout default 10000 |
+| `R16A_TMDB_BASE_URL` | | api | default `https://api.themoviedb.org/3/`, https in production, trailing slash. Tests point it at a mock |
+| `R16A_TMDB_IMAGE_BASE_URL` | | api | default `https://image.tmdb.org/t/p/original/`, the root image paths are appended to |
 | `R16A_WORKER_ENCODER` | | worker | `x264` (default), `qsv`, `vaapi` |
 | `R16A_WORKER_SCRATCH_DIR`, `R16A_WORKER_SCRATCH_RESERVE_BYTES` | | worker | |
 | `R16A_WORKER_TRANSCODE_CONCURRENCY`, `R16A_WORKER_IMAGE_CONCURRENCY` | | worker | defaults 1 and 2 |

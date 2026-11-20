@@ -2,6 +2,14 @@
 <header class="header">
   <a class="brand" routerLink="/">{{ 'app.name' | transloco }}</a>
   @if (me(); as user) {
+    <nav class="nav" [attr.aria-label]="'shell.nav' | transloco">
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">{{
+        'shell.browse' | transloco
+      }}</a>
+      @if (isAdmin()) {
+        <a routerLink="/admin" routerLinkActive="active">{{ 'shell.admin' | transloco }}</a>
+      }
+    </nav>
     <div class="account">
       <span class="name">{{ user.displayName }}</span>
       <button type="button" class="signout" (click)="signOut()">

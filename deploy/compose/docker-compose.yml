@@ -116,6 +116,7 @@ services:
       R16A_OIDC_MOBILE_ISSUER: ${R16A_OIDC_MOBILE_ISSUER:?set R16A_OIDC_MOBILE_ISSUER in .env}
       R16A_OIDC_MOBILE_CLIENT_ID: ${R16A_OIDC_MOBILE_CLIENT_ID:?set R16A_OIDC_MOBILE_CLIENT_ID in .env}
       R16A_SESSION_KEY: ${R16A_SESSION_KEY:?set R16A_SESSION_KEY in .env}
+      R16A_TMDB_TOKEN: ${R16A_TMDB_TOKEN:?set R16A_TMDB_TOKEN in .env}
     depends_on:
       migrate:
         condition: service_completed_successfully

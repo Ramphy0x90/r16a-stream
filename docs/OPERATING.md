@@ -36,29 +36,44 @@ GitHub secrets for CI: `R16A_DEV_OIDC_CLIENT_SECRET`, `R16A_CI_USER_PASSWORD`, `
 
 ### 3.1 Applications, providers and logout flows
 
-Exact settings are in SPEC 6.1. The steps below use the setting names from SPEC 6.1, which were checked against the 2026.2.1 source. The labels in the admin UI were not checked on a live instance yet, so confirm them on the first run and correct this text where they differ.
+Exact settings are in SPEC 6.1. The first real setup, on 2026-11-20 against 2026.2.1, failed twice until two steps were added: the `offline_access` mapping (step 6) and the `r16a-stream` mapping itself (step 2 and step 6). Both now fail loudly instead, see "When a login ends on" below. UI labels come from the 2026.2.1 source, correct this text where the admin UI differs.
 
 **Once for all providers**
-1. Directory, Groups, Create `r16a-stream-users` and `r16a-stream-admins`. Add every admin to both.
-2. Customization, Property Mappings, Create, **Scope Mapping**. Name `r16a-stream: access claims`, scope name `r16a-stream`, expression from SPEC 6.1.
+1. Directory, Groups, Create `r16a-stream-users` and `r16a-stream-admins`. Add every admin to both. For CI, also `r16a-stream-ci-users` and `r16a-stream-ci-admins` (3.2), which never get anyone else.
+2. Customization, Property Mappings, Create, **Scope Mapping**, twice. Both have scope name `r16a-stream` and an empty description. The expressions are in SPEC 6.1, copy them from there.
+   - Name `r16a-stream: access claims`, the production expression, which counts only `r16a-stream-users` and `r16a-stream-admins`.
+   - Name `r16a-stream-dev: access claims`, the dev expression, which also counts the two CI groups.
+   Why two: a single mapping would make the CI accounts, which have no MFA, members and admins of production too.
+   Why the mapping also emits `name` and `preferred_username`: the app does not request the `profile` scope, because Authentik's default profile mapping sends `groups` with every group name of the user (DECISIONS 074).
+3. For the mobile providers, Flows and Stages, Stages, Create, **Consent Stage**, name `r16a-stream-mobile-consent`, mode **always_require**. Flows, Create, name and slug `r16a-stream-mobile-authorization`, designation **Authorization**, then bind `r16a-stream-mobile-consent` at order 10. Why: the app's redirect is a custom URL scheme that another Android app could also register. Without a consent screen such an app could get a code silently from the user's Authentik browser session. The default explicit-consent flow remembers consent for 4 weeks and does not help (T-AUTH-11).
 
 **For each of the four providers** (`r16a-stream`, `r16a-stream-mobile`, `r16a-stream-dev`, `r16a-stream-mobile-dev`), Applications, Providers, Create, **OAuth2/OpenID Provider**:
-1. Name equal to the slug. Authorization flow `default-provider-authorization-implicit-consent`. Invalidation flow, the provider's own logout flow (below, create the flows first or come back to this field).
+1. Name equal to the slug. Authorization flow `default-provider-authorization-implicit-consent` for the two web providers, `r16a-stream-mobile-authorization` for the two mobile ones. Invalidation flow, the provider's own logout flow (below, create the flows first or come back to this field).
 2. Client type **Confidential** for `r16a-stream` and `r16a-stream-dev`, **Public** for the two mobile ones. Client ID equal to the slug, so `R16A_OIDC_WEB_CLIENT_ID` and the app's built-in ids match.
 3. Redirect URIs, strict, exactly those in SPEC 6.1 for that provider. Nothing else, no wildcards.
 4. Signing key, an RSA certificate (for example `authentik Self-signed Certificate`). Without one Authentik signs with HS256 and the API refuses every token.
-5. Advanced protocol settings: access code validity `minutes=1`, access token validity `minutes=5`, refresh token validity `days=30`, refresh token threshold `seconds=0`, scopes `openid`, `profile`, `offline_access` and `r16a-stream` (the mapping from step 2 above), subject mode "Based on the User's hashed ID", include claims in id_token **on**, issuer mode "Each provider has a different issuer". The hashed ID subject is the same for one person across all providers of this Authentik, which is what lets the web and the app share an account (DECISIONS 071).
-6. Applications, Create, name and slug equal to the provider name, provider the one just created. Launch URL as in SPEC 6.1. Policy / Group / User Bindings, exactly one binding, group `r16a-stream-users`.
-7. For the two confidential providers, copy the client secret into the API's secret store (`R16A_OIDC_WEB_CLIENT_SECRET`) and nowhere else. For the dev one that is your git-ignored `backend/.env` or `deploy/compose/.env`, and the GitHub secret `R16A_DEV_OIDC_CLIENT_SECRET`.
+5. Advanced protocol settings: access code validity `minutes=1`, access token validity `minutes=5`, refresh token validity `days=30`, refresh token threshold `seconds=0`, subject mode "Based on the User's hashed ID", include claims in id_token **on**, issuer mode "Each provider has a different issuer". The hashed ID subject is the same for one person across all providers of this Authentik, which is what lets the web and the app share an account (DECISIONS 071).
+6. **Scopes**, select exactly these three and remove anything preselected:
+   - `authentik default OAuth Mapping: OpenID 'openid'`
+   - `authentik default OAuth Mapping: OpenID 'offline_access'`. Without it Authentik silently issues no refresh token and every web login fails with a setup error.
+   - `r16a-stream: access claims` on the two production providers, `r16a-stream-dev: access claims` on the two dev ones. Without it the tokens carry no access claims and every login fails with a setup error.
+   - Not `profile`, not `email`, not `entitlements`, not the API access mapping.
+7. Applications, Create, name and slug equal to the provider name, provider the one just created. Launch URL as in SPEC 6.1. Policy / Group / User Bindings: on the two production applications exactly one group binding, `r16a-stream-users`. On the two dev applications two group bindings, `r16a-stream-users` and `r16a-stream-ci-users`, engine mode `any`.
+8. **Preview the claims before the first login.** On the provider's page, open the **Preview** tab, pick a member of `r16a-stream-users` and check the token preview shows `r16a_stream_user: true`, `r16a_stream_admin` true only for admins, `name`, `preferred_username`, and **no** `groups` or `email`. Pick a user outside the group and check `r16a_stream_user: false`. On a production provider, pick `r16a-stream-ci-admin` and check both claims are `false`.
+9. For the two confidential providers, copy the client secret into the API's secret store (`R16A_OIDC_WEB_CLIENT_SECRET`) and nowhere else. For the dev one that is your git-ignored `backend/.env` or `deploy/compose/.env`, and the GitHub secret `R16A_DEV_OIDC_CLIENT_SECRET`.
 
 **API configuration** follows from the slugs. `R16A_OIDC_ISSUER` is `https://<authentik>/application/o/<web slug>/`, `R16A_OIDC_MOBILE_ISSUER` the same with the mobile slug, both on the same Authentik host, which the API checks at startup. The app gets the Authentik origin with `--dart-define=R16A_AUTHENTIK_URL=https://<authentik>`.
 
+**When a login ends on "Sign-in is not set up correctly"** the page shows a reference. Search the API logs for it (`reference=<value>`), the line names the provider and the missing mapping. At startup the API also logs `provider lacks required scope mappings` with the missing names, and a warning when a provider still offers `profile` or `email`.
+
 Checklist:
-- both groups exist, admins are also members of `r16a-stream-users`,
-- the scope mapping `r16a-stream: access claims` with the expression from SPEC 6.1, attached to all four providers,
-- all four providers have a signing key selected (otherwise HS256 with the client secret), "Include claims in id_token" on, access token validity `minutes=5`, refresh token validity `days=30`,
-- each application has exactly one group binding to `r16a-stream-users`,
+- both groups exist, admins are also members of `r16a-stream-users`, the CI groups hold only the two CI users,
+- two scope mappings with scope name `r16a-stream`, production one on the production providers, dev one on the dev providers,
+- every provider has exactly the three scopes from step 6, a signing key, "Include claims in id_token" on, access token `minutes=5`, refresh token `days=30`,
+- the mobile providers use `r16a-stream-mobile-authorization`, which always asks for consent,
+- production applications are bound to `r16a-stream-users` only, dev applications to `r16a-stream-users` and `r16a-stream-ci-users`,
 - redirect URIs are strict and exact,
+- the Preview tab shows the claims from step 8 and no `groups`,
 - a non-member test account is refused at Authentik.
 
 **Logout flows** (why: Authentik 2026.2.1 ignores the redirect parameter of RP-initiated logout, so the redirect must come from the flow, and a provider-specific flow avoids touching the default flows that other apps use). Once:
@@ -84,13 +99,13 @@ Write the resulting application list here before applying the change: **to fill 
 
 **Setup** (run once, in this order):
 1. **Audit other applications.** In Authentik an application with no policy binding is open to every user. Make sure every application other than the r16a-stream ones has a binding (group or policy) that the CI users do not satisfy.
-2. Create users `r16a-stream-ci-user` and `r16a-stream-ci-admin`, user type **external**. Add the first to `r16a-stream-users`, the second to `r16a-stream-users` and `r16a-stream-admins`. No other groups.
+2. Create users `r16a-stream-ci-user` and `r16a-stream-ci-admin`, user type **external**. Add the first to `r16a-stream-ci-users`, the second to `r16a-stream-ci-users` and `r16a-stream-ci-admins`. Never to `r16a-stream-users` or `r16a-stream-admins`, and no other groups. Why: those two groups open the production applications, and these accounts have only a password. The CI groups count only in the dev mapping and are bound only to the dev applications (3.1).
 3. Set passwords of at least 32 random characters (`openssl rand -base64 32`). Store them in GitHub secrets `R16A_CI_USER_PASSWORD` and `R16A_CI_ADMIN_PASSWORD`, nowhere else.
 4. Customization, Policies, Create, **Expression Policy** `r16a-stream-ci-skip-mfa` with the expression from SPEC 6.7. Then in flow F, Stage Bindings, the Authenticator Validation binding:
    - Edit the binding, set **Policy engine mode** to `all` (it is `any` by default). Leave "Evaluate when flow is planned" off and "Evaluate when stage is run" on.
    - Bind Policy, choose `r16a-stream-ci-skip-mfa`, order 20, **Negate** on, **Failure result** pass.
    Why both: with `any`, the existing passwordless policy already passes for every password login, so the stage would run regardless. With `all`, the stage runs when the existing policy passes and the user is not a CI user, which for every other user is exactly today's result.
-5. **Check access.** For both users, Applications, each application, "Check access". Expected: allowed on `r16a-stream-dev` only.
+5. **Check access.** For both users, Applications, each application, "Check access". Expected: allowed on `r16a-stream-dev` and `r16a-stream-mobile-dev` only, refused on `r16a-stream`, `r16a-stream-mobile` and everything else. Then on the `r16a-stream` provider's Preview tab, preview `r16a-stream-ci-admin` and confirm both claims are `false`.
 6. **Manual MFA check, after every change to flow F**: in a private window, sign in as a normal user who has MFA and confirm the MFA prompt appears. Then sign in as `r16a-stream-ci-user` and confirm it does not. Record the date here. CI covers the second half on every run.
 
 **Password rotation** (every 90 days, and immediately if a CI log or secret may have leaked):

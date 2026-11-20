@@ -151,6 +151,7 @@ Consequences: Four applications to configure. `jsonwebtoken` 12.0.0 was publishe
 2026-11-16 · proposed (SPEC 21 C3)
 Context: The brief wants admin as one boolean, and the API to re-check group membership.
 Decision: The mapping returns `r16a_stream_user` and `r16a_stream_admin`, both booleans.
+Amended 2026-11-20: two mappings with the same scope name, production and dev, so the CI groups count only on the dev providers (075). Both also return `name` and `preferred_username`, which replace the `profile` scope (074).
 Consequences: The API can enforce membership without a groups claim.
 
 ### 023 Mobile redirect with a custom scheme and PKCE
@@ -313,6 +314,7 @@ Consequences: No dev or CI secret can mint production sessions, and a debug phon
 2026-11-18 · accepted
 Decision: `r16a-stream-ci-user` and `r16a-stream-ci-admin`, user type external, a negated expression policy matching exactly these two usernames on the MFA stage binding only, failure result pass, binding engine mode changed from `any` to `all` (needed, otherwise the existing policy already lets the stage run), passwords in GitHub secrets, Playwright only against the ephemeral CI stack (SPEC 6.7). Amended 2026-11-18: username match replaces the attribute, as you asked.
 Alternative noted: TOTP devices for the CI users with the secret in GitHub, which needs no flow change.
+Amended 2026-11-20 after the security review (075): the CI users are in their own groups `r16a-stream-ci-users` and `r16a-stream-ci-admins`, which only the dev mapping counts and only the dev applications bind. Before, they were in `r16a-stream-users` and `r16a-stream-admins`, which the production applications bind and the shared mapping counted, so a leaked CI admin password would have given admin on production with a password alone.
 Consequences: The shared authentication flow gets one policy binding. Every other application must exclude these users, because Authentik apps without bindings are open to all (OPERATING 3.2).
 
 ### 052 Separate worker database role with column grants
@@ -482,13 +484,66 @@ Consequences: Web and mobile share favorites and progress. Changing the subject 
 2026-11-20 · accepted (applies 064)
 Context: An audit of `backend/Cargo.lock` against crates.io publication dates found 23 crates younger than 7 days, among them `sqlx` 0.9.1 (published 2026-11-18, the day Phase 1 locked it), `uuid` 1.29.3, `bytes` 1.12.2, `jiff` 0.2.46, `zeroize` 1.9.2, `brotli` 9.1.3 and `regex-automata` 0.4.19. None was a fix for a vulnerability affecting us.
 Decision: each was pinned with `cargo update --precise` to its newest compatible release that is at least 7 days old, for example `sqlx` 0.9.0 (which also matches `sqlx-cli` 0.9.0 again), `uuid` 1.29.2, `jiff` 0.2.43. `rand` is 0.10.3, not 0.10.4 (published 2026-11-15). The audit script ran from the session scratchpad. A repeatable `shared/scripts` version is proposed for Phase 3.
-Consequences: Dependabot or `cargo update` would move these forward again, so lockfile updates are reviewed against the rule. The npm lockfile has not been audited the same way yet, open question for the Phase 2 gate.
+Consequences: Dependabot or `cargo update` would move these forward again, so lockfile updates are reviewed against the rule.
+Amended 2026-11-20, npm: 36 of 550 lockfile packages were younger than 7 days, all development and build tooling, none in the browser bundle. Direct pins moved to `eslint` 10.14.0, `typescript-eslint` 8.72.2, `angular-eslint` 22.6.0 and `@playwright/test` 1.65.0 (Chromium build 1254, CI image `v1.65.0-noble` by digest). The lockfile was then resolved afresh with `npm install --before=<now minus 7 days>`, which treats newer releases as nonexistent. Result 0 of 548 young, Angular, TypeScript and the other runtime packages unchanged, 37 tooling versions moved. Conflict noted and resolved by the rule: `typescript-eslint` 8.72.2 depends on a `minimatch` with GHSA-g3hv-75wg-m249 (moderate, denial of service through crafted glob patterns), which the younger 8.73.0 fixes. It does not affect us, because the globs come only from our own lint config on developer machines and CI, so the 7-day rule applies and `npm audit` shows 15 moderate findings from that one advisory until 8.73.0 can be adopted on 2026-11-23. CI fails only on high.
 
 ### 073 Android build toolchain for Flutter 3.50, backups really off
 2026-11-20 · accepted
 Context: Flutter 3.50 refuses Gradle below 9.3.1 and the Kotlin Gradle plugin below 2.4.10. The Phase 1 scaffold from 3.44.6 had Gradle 9.1.0, AGP 9.0.1 and KGP 2.3.20, so `flutter build apk` failed after the FVM move (068). Separately, `mobile/CLAUDE.md` said Android backups were off, but the manifest did not set `allowBackup`, which defaults to on.
 Decision: the versions a fresh Flutter 3.50 template pins, Gradle 9.5.0 (2026-04-28), AGP 9.3.1 (2026-07-23) and KGP 2.4.20 (2026-09-07). The manifest sets `allowBackup="false"`, `fullBackupContent="false"` and data extraction rules that exclude every domain from cloud backup and device transfer.
 Consequences: A debug APK builds again and its merged manifest was checked with `aapt2`. The redirect scheme is a manifest placeholder per build type, debug gets `cloud.r16a.stream.dev`, profile and release get `cloud.r16a.stream`, and iOS sets the same through `R16A_OIDC_SCHEME` in the xcconfig files.
+
+### 074 No group names in tokens, `profile` is not requested
+2026-11-20 · accepted (found in the first real login)
+Context: Authentik's default `profile` mapping returns `name`, `given_name`, `preferred_username`, `nickname` and `groups`, the names of every group the user is in, including groups of other applications such as `authentik Admins`. The design (C3, 022) meant the app to see only the two booleans. The backend needs only a display name from `profile`.
+Verified in the 2026.2.1 source: claims come only from mappings whose scope the client requested and the provider has selected (`views/userinfo.py`), and a requested scope the provider lacks is silently dropped (`views/authorize.py`). `scopes_supported` in the discovery document is exactly the provider's selected mappings (`views/provider.py`).
+Options: keep `profile` and ignore `groups` (the names still sit in every token, in the browser session store of Authentik and on the phone), a custom profile mapping without `groups`, or no `profile` at all.
+Decision: the web and the app request `openid offline_access r16a-stream`. The two `r16a-stream` mappings also return `name` and `preferred_username`. No provider has `profile` or `email` selected, so even a modified client cannot get them, and the API warns at startup when a provider offers either.
+Consequences: Tokens carry the subject, the display name, the username and two booleans, nothing about other groups or applications. A provider that still has `profile` selected keeps working, it only logs the warning.
+
+### 075 Fixes from the Phase 2 security review
+2026-11-20 · accepted
+The security-reviewer agent reviewed all auth code on 2026-11-20. It found the backend's token, cookie, CSRF and flow handling sound and raised these, all fixed:
+- **High, CI accounts reached production.** The CI users were in the production groups and the mapping was shared, so a leaked password-only CI admin account was a production admin. Fixed by separate CI groups, a dev-only mapping and dev-only bindings (051, SPEC 6.7, OPERATING 3.2).
+- **Medium, revocation did not survive a refresh on mobile.** `iat` was compared with `sessions_revoked_at`, and the app's refresh produced a newer `iat`. Now `auth_time` is compared, which Authentik copies unchanged into refreshed tokens (verified in `views/token.py`), so revoking forces a new interactive sign-in. A token without `auth_time` is refused once the user has a revocation.
+- **Medium, redirect interception on Android.** Any app can register the custom scheme and, with silent consent and a shared Custom Tab session, start its own flow and receive a code. Fixed for now with an authorization flow that always asks for consent on the mobile providers (the default explicit flow remembers consent for 4 weeks, verified in the blueprint). A verified Android App Link as redirect is the stronger fix, proposed for Phase 9 when the production host serves `assetlinks.json`.
+- **Medium, pool exhaustion during an outage.** The refresh held a row lock and a pooled connection across up to two Authentik timeouts, and every stale session retried. Replaced by a 30 second refresh lease taken in one `UPDATE` (migration `20261120000002`), the Authentik call outside any transaction, and a 30 second per-provider fail-fast after an outage.
+- **Low, a cancelled request could lose the rotated refresh token.** The refresh and its write run in a spawned task that the request awaits.
+- **Low, a refresh in flight could undo a mobile sign-out.** Sign-out waits for it, and a generation counter stops a late refresh from writing, its new token is revoked.
+- **Low, operator errors signed everyone out.** 429, `invalid_client`, non-JSON error pages and an unknown signing key are now outages, not refusals. Only `invalid_grant`, a lost claim and a changed subject end a session.
+- **Low, rate limit key and flow table.** IPv6 clients are limited per /64, at most 10 000 login flows live at once, and production refuses an empty `R16A_TRUSTED_PROXY_CIDRS`.
+- **Informational, all taken:** the callback query no longer prints its code in `Debug`, discovery endpoints must be on the issuer's host, the app sends the bearer token only to the API's own origin (presigned URLs must never get it), and release builds refuse non-https API or Authentik URLs.
+Consequences: Tests cover each fix (`auth_web.rs`, `auth_bearer.rs`, mobile `token_manager_test.dart`, `auth_interceptor_test.dart`, `config_test.dart`). Mobile users see a consent screen on every sign-in, which with 30-day refresh tokens is rare.
+
+### 076 Catalog in two parts, images in Phase 3b
+2026-11-20 · proposed, both parts built (078)
+Context: Phase 3 is the catalog and admin content. Images (posters, backdrops, stills) need the uploads table, the job queue and a worker job type, which SPEC builds for transcoding in Phase 4. Building those parts twice would split one design.
+Decision: Phase 3a delivers the catalog schema (with the image tables and the worker grants), browsing, search, the title page, admin editing with audit, the TMDB lookup, the web screens and the generated mobile models. Phase 3b adds the upload and job tables, TMDB image download into the uploads bucket, the worker image pipeline (SPEC 8.2), presigned image URLs per UTC day (8.3), and `seed --bench` with `docs/perf/queries.md` (4.10). Image fields in the API are null until then.
+Consequences: The API shape does not change in 3b, `poster`, `backdrop` and `still` are already in the schema as nullable.
+
+### 077 Phase 3a implementation choices
+2026-11-20 · proposed
+- **Admin routes added to SPEC 5.2.** `GET /admin/titles`, `GET /admin/titles/{id}` (the editor needs drafts, which user-facing routes never show) and `POST /admin/genres` (manual titles need genres). Episode routes are `POST /admin/seasons/{id}/episodes`, `PATCH|DELETE /admin/episodes/{id}`.
+- **The TMDB draft is a `TitleInput`.** The lookup returns exactly the create body, so the admin edits and posts it back. Genres travel as `newGenres` with their TMDB id and are created on save. No genres are seeded, TMDB genre ids would have come from memory.
+- **Body limits.** The global `RequestBodyLimitLayer` is now the 2 MiB ceiling of the largest route, and `DefaultBodyLimit` stays 16 KiB for every route except `POST /admin/titles` and `POST /admin/titles/{id}/seasons`, which take 2 MiB. Tested with a 20 KiB patch (413) and a 400 episode show (201).
+- **Search.** `websearch_to_tsquery('simple', f_unaccent(q))` or trigram similarity on the unaccented name, rank is `ts_rank + similarity` as float4, keyset on `(rank, id)`. Finds partial words and typos ("brakng bad").
+- **Cursors** are base64url JSON of the sort key and id, not signed. They only move the caller through their own result set, and every query still carries its filters and `status = 'published'`.
+- **Entity tags.** Catalog reads are `private, no-cache` with a weak tag over the body, `If-None-Match` answers 304.
+- **OpenAPI query parameters.** utoipa declared every `IntoParams` struct as path parameters, also the Phase 2 login and callback queries. Fixed with `#[into_params(parameter_in = Query)]`, and `tests/openapi.rs` now fails on any path parameter without a placeholder.
+- **Mobile models with `swagger_parser` 2.1.1, plain serializer.** 2.2.0, the approved version, was 6 days old (064). Version 2 writes plain `fromJson` and `toJson`, so `json_serializable`, `build_runner` and `json_annotation` from section B are not needed and not added, one package less ships in the app. `operation_filters.include_paths: []` generates models only, dio stays the client. Generated code is excluded from `flutter analyze`.
+- **Web forms without `@angular/forms`.** Native inputs bound to signals, the admin editor is small. Sending only changed fields keeps PATCH semantics exact.
+Consequences: Section B is updated accordingly.
+
+### 078 Image pipeline and query tuning in Phase 3b
+2026-11-20 · proposed
+- **Scope.** TMDB posters and backdrops, the `jobs` table (without its variant column, added with `media_variants` in Phase 4), the worker image pipeline, presigned image URLs, and `seed --bench`. Manual image uploads need the uploads table and its multipart flow and move to Phase 4, as do episode stills.
+- **Encoder settings.** AVIF with `libaom-av1 -still-picture 1 -crf 30 -cpu-used 6 -pix_fmt yuv420p`, WebP with `libwebp -quality 80`, both `-map_metadata -1`. Checked on Debian trixie's ffmpeg 7.1.5, which has both encoders, so the DECISIONS 018 check is done.
+- **Heights** are computed with ffmpeg's own rule for `scale=w:-2`, and `tests/images.rs` compares them with the real output.
+- **Placeholder colour** is the image averaged to one pixel by ffmpeg, stored in the design token HSL notation, and checked again by the web client before it becomes a style value.
+- **Worker wake-up.** `LISTEN r16a_stream_jobs` with a 10 s poll as the fallback, and a reaper that requeues jobs without a heartbeat for 2 minutes, as SPEC 7.2 describes.
+- **tokio `process` feature** enabled for spawning ffmpeg. A feature of an approved crate, no new dependency.
+- **Search query rewritten.** The bench showed the CTE form could use neither GIN index (22 ms at 10 000 titles, linear). With the terms inline the planner combines both indexes, 0.04 ms for a rare word and 1.7 ms for a typo. The bench vacuums after seeding, because new GIN entries in the pending list hide the index from the planner. A future bulk import should end with `VACUUM (ANALYZE) titles` (docs/perf/queries.md).
+- **Replaced images** keep their rows and objects until encode GC (Phase 4) removes images no title references.
 
 ---
 
@@ -544,8 +599,8 @@ Tools: `sqlx-cli` 0.9.0, `cargo-deny` 0.21.0, `cargo-audit` 0.23.0, `cargo-chef`
 | rxjs | as required by Angular | brief (implied) | |
 | vitest | 5.1.0 | brief (implied by Angular's runner) | unit tests, peer range `^4.0.8 \|\| ^5.0.0` |
 | jsdom | 31.0.1 | needs approval, dev | test DOM |
-| @playwright/test | 1.65.1 | brief | E2E, CSP and perf checks |
-| eslint, angular-eslint, typescript-eslint | 10.15.0, 22.7.0, 8.73.0 | needs approval, dev | lint |
+| @playwright/test | 1.65.0 | brief | E2E, CSP and perf checks, Chromium build 1254 (072) |
+| eslint, angular-eslint, typescript-eslint | 10.14.0, 22.6.0, 8.72.2 | approved, dev | lint, pinned back by the 7-day rule (072) |
 | prettier | 3.10.1 | needs approval, dev | format |
 | openapi-typescript | 7.13.0 | approved, dev | API types (042), runs on TypeScript 6 through an override (062) |
 | @eslint/js | 10.0.1 | approved, dev | ESLint's own recommended rules, required by the flat config |
@@ -571,8 +626,8 @@ Node 26.13.1 LTS.
 | material_ui, cupertino_ui | 1.11.0, 1.1.6 | approved 2026-11-20 (069) | Material and Cupertino widgets and their localization delegates, moved out of the SDK in Flutter 3.47 |
 | flutter_lints | 6.0.0 | needs approval, dev | analysis rules (Zaltys uses it) |
 | mocktail | 1.0.5 | needs approval, dev | test doubles |
-| swagger_parser | 2.2.0 | **approved** 2026-11-18, dev only | model generation from OpenAPI, generated code committed |
-| json_serializable, build_runner, json_annotation | 6.15.2, 2.17.1, 4.12.0 | needs approval | what the code `swagger_parser` generates uses at build and run time, `json_annotation` ships in the app |
+| swagger_parser | 2.1.1 | **approved** 2026-11-18, dev only | model generation from OpenAPI with the plain serializer, models only, generated code committed. 2.2.0 was younger than 7 days (077) |
+| json_serializable, build_runner, json_annotation | not used | approved, not added | not needed, `swagger_parser` 2 generates plain codecs (077) |
 
 Flutter 3.50.0, Dart 3.14.0, through FVM 4.3.2 (068).
 
@@ -589,7 +644,7 @@ Flutter 3.50.0, Dart 3.14.0, through FVM 4.3.2 (068).
 | traefik (test only) | v3.6.7, digest pinned | accepted | presign and credential-stripping test, pinned to the cluster baseline (054) |
 | traefik/whoami (test only) | v1.12.0, digest pinned | accepted | header echo standing in for Garage, proves `Cookie` and `Authorization` are stripped |
 | curlimages/curl | 8.23.0, digest pinned | accepted | runs the Garage init, because the Garage image has no shell |
-| mcr.microsoft.com/playwright | v1.65.1-noble, digest pinned | accepted | CI browser for the CSP check, matches @playwright/test |
+| mcr.microsoft.com/playwright | v1.65.0-noble, digest pinned | accepted | CI browser for the CSP check, matches @playwright/test |
 | aquasec/trivy | 0.76.2 | proposed | image and filesystem scans |
 | kubeconform | pinned in Phase 1 | proposed | manifest validation, as Zaltys |
 | Gradle, AGP, Kotlin Gradle plugin | 9.5.0, 9.3.1, 2.4.20 | accepted (073) | Android build of the app, as the Flutter 3.50 template |
@@ -613,7 +668,7 @@ Flutter 3.50.0, Dart 3.14.0, through FVM 4.3.2 (068).
 
 **Traefik** (including the 3.6.7 to 3.7 alignment, entry 054): matcher syntax (`QueryRegexp`, `HeaderRegexp`, `PathRegexp`), per-router access log switch, header deletion by empty value, Retry middleware semantics and which methods it retries, `ServersTransport` options, health check support for selector-less Services, `websecure` timeouts. `tests/traefik_presign.rs` runs against the new version first.
 
-**OIDC client** (entry 070, on any Authentik or `jsonwebtoken` change): discovery document fields and issuer format with trailing slash, JWKS `kid` and `alg` on every key, token endpoint error body `{"error":"invalid_grant"}` for refused codes and refresh tokens, that a refresh response always carries a new `id_token` and `refresh_token`, that the revocation endpoint accepts `client_secret_basic`, that `sub` with hashed user ID is still `user.uid` (071). `tests/auth_web.rs` and `tests/auth_bearer.rs` encode these assumptions in the mock.
+**OIDC client** (entries 070, 074, 075, on any Authentik or `jsonwebtoken` change): `scopes_supported` still lists exactly the selected mappings, a requested scope the provider lacks is still dropped silently, `auth_time` is still carried unchanged through refresh, the default `profile` mapping's claims, discovery document fields and issuer format with trailing slash, JWKS `kid` and `alg` on every key, token endpoint error body `{"error":"invalid_grant"}` for refused codes and refresh tokens, that a refresh response always carries a new `id_token` and `refresh_token`, that the revocation endpoint accepts `client_secret_basic`, that `sub` with hashed user ID is still `user.uid` (071). `tests/auth_web.rs` and `tests/auth_bearer.rs` encode these assumptions in the mock.
 
 **Authentik** (entry 049, verified on 2026.2.1): claims from scope mappings in access tokens and their dependence on "Include claims in id_token", whether code and refresh grants evaluate application policies, whether `request.user` in a scope mapping is the token user on refresh, refresh token rotation and reuse detection, whether end-session honours `id_token_hint` and `post_logout_redirect_uri` (if it does, return to the app after logout), `is_active` checks on refresh, external user type in OAuth flows, the MFA stage binding policy for the CI users.
 

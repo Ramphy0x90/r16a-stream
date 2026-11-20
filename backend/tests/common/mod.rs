@@ -6,6 +6,7 @@
 #![allow(dead_code, clippy::unwrap_used, clippy::expect_used)]
 
 pub mod idp;
+pub mod tmdb;
 
 use std::{
     collections::HashMap,
@@ -74,6 +75,9 @@ pub fn test_vars(public_url: &str, s3_endpoint: &str) -> HashMap<&'static str, S
             "R16A_SESSION_KEY",
             "BwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSY=".into(),
         ),
+        // Closed port unless a test starts the mock TMDB.
+        ("R16A_TMDB_TOKEN", "test-tmdb-read-token-9c41e07b2d5a8f36".into()),
+        ("R16A_TMDB_BASE_URL", "http://127.0.0.1:9/3/".into()),
     ])
 }
 
@@ -91,12 +95,21 @@ pub fn state_with(pool: PgPool, vars: &HashMap<&'static str, String>) -> AppStat
     let cfg = config_from(vars);
     let storage = GarageClient::new(&cfg.s3).expect("storage client");
     let auth = AuthState::new(&cfg).expect("auth state");
+    let tmdb = r16a_stream_backend::tmdb::client::TmdbClient::new(&cfg.tmdb, false).expect("tmdb client");
+    let tmdb_images =
+        r16a_stream_backend::images::ingest::TmdbImages::new(cfg.tmdb.image_base_url.clone(), false).expect("images");
+    let image_urls =
+        r16a_stream_backend::images::urls::ImageUrls::new(&cfg.s3_public_endpoint, &cfg.s3).expect("image urls");
     AppState {
         config: Arc::new(cfg),
         db: pool,
         storage: Arc::new(storage),
         write_health: Arc::new(WriteHealth::default()),
         auth: Arc::new(auth),
+        limits: Arc::default(),
+        tmdb: Arc::new(tmdb),
+        tmdb_images: Arc::new(tmdb_images),
+        image_urls: Arc::new(image_urls),
     }
 }
 

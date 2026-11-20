@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "insert into title_credits (title_id, ord, person_name, character, role)\n         select $1, * from unnest($2::smallint[], $3::text[], $4::text[], $5::text[])",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int2Array",
+        "TextArray",
+        "TextArray",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9acb322c74e2bcd12218792d6376b28dbd5f6e8b8da1dd204fd8ff94e89af5e3"
+}

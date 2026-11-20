@@ -82,4 +82,23 @@ void main() {
     );
     expect(adapter.seen, [null]);
   });
+
+  test(
+    'the token never goes to another origin, such as a presigned media URL',
+    () async {
+      final manager = TokenManager(
+        client: FakeOidc(),
+        store: MemoryStore(tokens('1')),
+      );
+      final dio = buildApiClient('http://api.test', manager);
+      final adapter = ScriptedAdapter([200, 200]);
+      dio.httpClientAdapter = adapter;
+      await dio.get<void>('http://media.test/r16a-stream-media/x.m4s');
+      await dio.get<void>('https://api.test/api/v1/me');
+      expect(adapter.seen, [
+        null,
+        null,
+      ], reason: 'other host, and same host with another scheme');
+    },
+  );
 }

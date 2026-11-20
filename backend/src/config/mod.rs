@@ -98,6 +98,20 @@ pub struct AuthConfig {
     pub trusted_proxies: Vec<Cidr>,
 }
 
+/// TMDB metadata lookups (SPEC 8.1).
+#[derive(Debug)]
+pub struct TmdbConfig {
+    /// v4 read access token, sent as a bearer header.
+    pub token: SecretString,
+    /// API root, `https://api.themoviedb.org/3/`. Only paths built by code are appended to it.
+    pub base_url: Url,
+    /// Metadata language, for example `en-US`.
+    pub language: String,
+    /// Root of original-size TMDB images, `https://image.tmdb.org/t/p/original/`.
+    pub image_base_url: Url,
+    pub timeout: Duration,
+}
+
 #[derive(Debug)]
 pub struct ApiConfig {
     pub env: Env,
@@ -112,6 +126,7 @@ pub struct ApiConfig {
     /// What presigned URLs are signed for. Always the app origin, so the browser stays same-origin.
     pub s3_public_endpoint: Url,
     pub auth: AuthConfig,
+    pub tmdb: TmdbConfig,
 }
 
 #[derive(Debug)]
@@ -122,6 +137,10 @@ pub struct WorkerConfig {
     pub db: DbConfig,
     pub s3: S3Config,
     pub scratch_dir: std::path::PathBuf,
+    pub ffmpeg: std::path::PathBuf,
+    pub ffprobe: std::path::PathBuf,
+    /// Image jobs run at once in this worker, default 2 (SPEC 7.2).
+    pub image_concurrency: usize,
 }
 
 /// Reads one variable. Empty strings count as missing, because orchestrators often render an
@@ -340,8 +359,77 @@ fn auth(lookup: Lookup<'_>, env: Env) -> Result<AuthConfig, ConfigError> {
         timeout: millis(lookup, "R16A_OIDC_TIMEOUT_MS", 5_000)?,
         session_key,
         session_key_previous,
-        trusted_proxies: cidrs(lookup, "R16A_TRUSTED_PROXY_CIDRS")?,
+        trusted_proxies: {
+            let list = cidrs(lookup, "R16A_TRUSTED_PROXY_CIDRS")?;
+            // Production always runs behind Traefik. Without its range every client would share
+            // Traefik's address, and one client could use up the login limit for everyone.
+            if list.is_empty() && env == Env::Production {
+                return Err(ConfigError::Missing {
+                    name: "R16A_TRUSTED_PROXY_CIDRS",
+                });
+            }
+            list
+        },
     })
+}
+
+fn tmdb(lookup: Lookup<'_>, env: Env) -> Result<TmdbConfig, ConfigError> {
+    let token = required(lookup, "R16A_TMDB_TOKEN")?;
+    check_secret("R16A_TMDB_TOKEN", &token, env, 32)?;
+    let base_url = match get(lookup, "R16A_TMDB_BASE_URL") {
+        None => Url::parse("https://api.themoviedb.org/3/")
+            .map_err(|_| ConfigError::invalid("R16A_TMDB_BASE_URL", "default does not parse"))?,
+        Some(_) => url(lookup, "R16A_TMDB_BASE_URL")?,
+    };
+    if env == Env::Production && base_url.scheme() != "https" {
+        return Err(ConfigError::invalid(
+            "R16A_TMDB_BASE_URL",
+            "must be https in production",
+        ));
+    }
+    if !base_url.path().ends_with('/') || base_url.query().is_some() {
+        return Err(ConfigError::invalid(
+            "R16A_TMDB_BASE_URL",
+            "must end with a slash and carry no query",
+        ));
+    }
+    let language = get(lookup, "R16A_TMDB_LANGUAGE").unwrap_or_else(|| String::from("en-US"));
+    let b = language.as_bytes();
+    let lang_ok = b.len() == 5
+        && b[..2].iter().all(u8::is_ascii_lowercase)
+        && b[2] == b'-'
+        && b[3..].iter().all(u8::is_ascii_uppercase);
+    if !lang_ok {
+        return Err(ConfigError::invalid("R16A_TMDB_LANGUAGE", "must look like en-US"));
+    }
+    let image_base_url = match get(lookup, "R16A_TMDB_IMAGE_BASE_URL") {
+        None => Url::parse("https://image.tmdb.org/t/p/original/")
+            .map_err(|_| ConfigError::invalid("R16A_TMDB_IMAGE_BASE_URL", "default does not parse"))?,
+        Some(_) => url(lookup, "R16A_TMDB_IMAGE_BASE_URL")?,
+    };
+    if (env == Env::Production && image_base_url.scheme() != "https") || !image_base_url.path().ends_with('/') {
+        return Err(ConfigError::invalid(
+            "R16A_TMDB_IMAGE_BASE_URL",
+            "must be https in production and end with a slash",
+        ));
+    }
+    Ok(TmdbConfig {
+        token: SecretString::from(token),
+        base_url,
+        image_base_url,
+        language,
+        timeout: millis(lookup, "R16A_TMDB_TIMEOUT_MS", 10_000)?,
+    })
+}
+
+/// An absolute path to an executable. ffmpeg is never looked up through `PATH`, so nothing in
+/// the environment can swap the binary.
+fn binary(lookup: Lookup<'_>, name: &'static str, default: &str) -> Result<std::path::PathBuf, ConfigError> {
+    let p = std::path::PathBuf::from(get(lookup, name).unwrap_or_else(|| default.to_owned()));
+    if !p.is_absolute() {
+        return Err(ConfigError::invalid(name, "must be an absolute path"));
+    }
+    Ok(p)
 }
 
 fn flag(lookup: Lookup<'_>, name: &'static str) -> Result<bool, ConfigError> {
@@ -390,6 +478,7 @@ impl ApiConfig {
             s3: s3(lookup, env, "R16A_S3_ACCESS_KEY_ID", "R16A_S3_SECRET_ACCESS_KEY")?,
             s3_public_endpoint: url(lookup, "R16A_S3_PUBLIC_ENDPOINT")?,
             auth: auth(lookup, env)?,
+            tmdb: tmdb(lookup, env)?,
         })
     }
 }
@@ -419,6 +508,18 @@ impl WorkerConfig {
             )?,
             scratch_dir: get(lookup, "R16A_WORKER_SCRATCH_DIR")
                 .map_or_else(|| std::path::PathBuf::from("./.scratch"), std::path::PathBuf::from),
+            ffmpeg: binary(lookup, "R16A_FFMPEG_PATH", "/usr/bin/ffmpeg")?,
+            ffprobe: binary(lookup, "R16A_FFPROBE_PATH", "/usr/bin/ffprobe")?,
+            image_concurrency: {
+                let n: usize = parse_or(lookup, "R16A_WORKER_IMAGE_CONCURRENCY", 2)?;
+                if !(1..=16).contains(&n) {
+                    return Err(ConfigError::invalid(
+                        "R16A_WORKER_IMAGE_CONCURRENCY",
+                        "must be between 1 and 16",
+                    ));
+                }
+                n
+            },
         })
     }
 }

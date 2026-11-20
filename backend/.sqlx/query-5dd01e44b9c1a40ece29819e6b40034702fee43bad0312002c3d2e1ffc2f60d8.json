@@ -1,0 +1,93 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select t.id, t.kind, t.name, t.year, t.poster_image_id, t.listed_at as \"listed_at!\"\n           from titles t\n           where t.status = 'published'\n             and ($1::text is null or t.kind = $1)\n             and ($2::text is null or exists (\n                   select 1 from title_genres tg join genres g on g.id = tg.genre_id\n                   where tg.title_id = t.id and g.slug = $2))\n             and ($3::text is null or exists (\n                   select 1 from title_languages tl where tl.title_id = t.id and tl.language = $3))\n             and ($4::timestamptz is null or (t.listed_at, t.id) < ($4, $5::uuid))\n           order by t.listed_at desc, t.id desc\n           limit $6",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "titles",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "titles",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "titles",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "year",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "titles",
+            "name": "year"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "poster_image_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "titles",
+            "name": "poster_image_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "listed_at!",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "titles",
+            "name": "listed_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "5dd01e44b9c1a40ece29819e6b40034702fee43bad0312002c3d2e1ffc2f60d8"
+}

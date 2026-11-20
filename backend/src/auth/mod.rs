@@ -95,12 +95,33 @@ impl AuthState {
         })
     }
 
-    /// Fetches both discovery documents once, so the first login does not pay for it. Failure
-    /// only logs, the API serves everything else while Authentik is down.
+    /// Fetches both discovery documents once, so the first login does not pay for it, and logs
+    /// any missing or unwanted scope mapping at startup. Failure only logs, the API serves
+    /// everything else while Authentik is down.
     pub async fn warm_up(&self) {
         for (name, p) in [("web", &self.providers.web), ("mobile", &self.providers.mobile)] {
-            if let Err(e) = p.discovery().await {
-                tracing::warn!(provider = name, error = %e, "OIDC discovery failed, retried on first use");
+            match p.discovery().await {
+                Err(e) => tracing::warn!(provider = name, error = %e, "OIDC discovery failed, retried on first use"),
+                Ok(d) => {
+                    let missing = d.missing_scopes();
+                    if !missing.is_empty() {
+                        tracing::error!(
+                            provider = name,
+                            client_id = p.client_id(),
+                            missing = %missing.join(", "),
+                            "provider lacks required scope mappings, logins will fail (OPERATING 3.1)"
+                        );
+                    }
+                    let unwanted = d.unwanted_scopes();
+                    if !unwanted.is_empty() {
+                        tracing::warn!(
+                            provider = name,
+                            client_id = p.client_id(),
+                            scopes = %unwanted.join(", "),
+                            "provider offers scopes that put group names or email into tokens, remove them (DECISIONS 074)"
+                        );
+                    }
+                }
             }
         }
     }

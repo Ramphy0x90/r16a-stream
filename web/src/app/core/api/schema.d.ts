@@ -4,6 +4,179 @@
  */
 
 export interface paths {
+  '/api/v1/admin/episodes/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: operations['delete_episode'];
+    options?: never;
+    head?: never;
+    patch: operations['update_episode'];
+    trace?: never;
+  };
+  '/api/v1/admin/genres': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Adds a genre for titles entered by hand. TMDB genres are created when a title is saved. */
+    post: operations['create_genre'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/seasons/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: operations['delete_season'];
+    options?: never;
+    head?: never;
+    patch: operations['update_season'];
+    trace?: never;
+  };
+  '/api/v1/admin/seasons/{id}/episodes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['create_episode'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/titles': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Every title, drafts included, last changed first. */
+    get: operations['list'];
+    put?: never;
+    /** Creates a draft, optionally with seasons and episodes, for example from a TMDB draft. */
+    post: operations['create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/titles/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** One title with everything an admin edits. */
+    get: operations['get'];
+    put?: never;
+    post?: never;
+    /** Deletes a title with its seasons, episodes, genres and credits. */
+    delete: operations['delete'];
+    options?: never;
+    head?: never;
+    /** Changes fields of a title. The kind never changes. */
+    patch: operations['update'];
+    trace?: never;
+  };
+  '/api/v1/admin/titles/{id}/publish': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Makes a title visible to members. The first publish sets its place in Recently added. */
+    post: operations['publish'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/titles/{id}/seasons': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Adds a season, optionally with its episodes, to a show. */
+    post: operations['create_season'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/titles/{id}/unpublish': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Hides a title from members again. */
+    post: operations['unpublish'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/tmdb/lookup': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Prefills a title draft from TMDB. Nothing is saved, the admin edits the draft and posts it
+     *     to `POST /admin/titles`.
+     */
+    get: operations['lookup'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/admin/users/{id}/revoke-sessions': {
     parameters: {
       query?: never;
@@ -76,6 +249,57 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/genres': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** All genres, with the slug the clients translate. */
+    get: operations['genres'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/home/recently-added': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Up to 20 titles added most recently, for the home row. */
+    get: operations['recently_added'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/languages': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Content languages that at least one published title can be watched in. */
+    get: operations['languages'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/me': {
     parameters: {
       query?: never;
@@ -127,10 +351,208 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/titles': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Home grid, filters and search (H1 to H5). */
+    get: operations['browse'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/titles/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The title page (H8). Drafts are 404 here, admins see them through the admin routes. */
+    get: operations['title'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/titles/{id}/seasons/{number}/episodes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Episodes of one season (H9). */
+    get: operations['episodes'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    AdminEpisode: {
+      /** Format: date */
+      airDate?: string | null;
+      /** Format: uuid */
+      id: string;
+      name?: string | null;
+      /** Format: int32 */
+      number: number;
+      overview?: string | null;
+      /** Format: int32 */
+      runtimeMinutes?: number | null;
+    };
+    AdminSeason: {
+      episodes: components['schemas']['AdminEpisode'][];
+      /** Format: uuid */
+      id: string;
+      name?: string | null;
+      /** Format: int32 */
+      number: number;
+      overview?: string | null;
+      /** Format: int32 */
+      year?: number | null;
+    };
+    /** @description Everything an admin edits on one title, drafts included. */
+    AdminTitle: {
+      backdrop?: components['schemas']['ImageSet'] | null;
+      credits: components['schemas']['Credit'][];
+      genres: components['schemas']['Genre'][];
+      /** Format: uuid */
+      id: string;
+      kind: components['schemas']['TitleKind'];
+      name: string;
+      originalName?: string | null;
+      overview?: string | null;
+      poster?: components['schemas']['ImageSet'] | null;
+      /** Format: int32 */
+      runtimeMinutes?: number | null;
+      seasons: components['schemas']['AdminSeason'][];
+      status: string;
+      /** Format: int32 */
+      tmdbId?: number | null;
+      /** Format: int32 */
+      year?: number | null;
+    };
+    AdminTitlePage: {
+      items: components['schemas']['AdminTitleRow'][];
+      nextCursor?: string | null;
+    };
+    AdminTitleRow: {
+      /** Format: uuid */
+      id: string;
+      kind: components['schemas']['TitleKind'];
+      name: string;
+      /** @description `draft` or `published`. */
+      status: string;
+      /** Format: date-time */
+      updatedAt: string;
+      /** Format: int32 */
+      year?: number | null;
+    };
+    Created: {
+      /** Format: uuid */
+      id: string;
+    };
+    Credit: {
+      character?: string | null;
+      personName: string;
+      role: components['schemas']['CreditRole'];
+    };
+    CreditInput: {
+      character?: string | null;
+      personName: string;
+      role: components['schemas']['CreditRole'];
+    };
+    /** @enum {string} */
+    CreditRole: 'cast' | 'director' | 'creator' | 'writer';
+    Episode: {
+      /** Format: date */
+      airDate?: string | null;
+      /** Format: uuid */
+      id: string;
+      /** @description Content languages with a ready variant. Filled once variants exist (Phase 4). */
+      languages: string[];
+      name?: string | null;
+      /** Format: int32 */
+      number: number;
+      overview?: string | null;
+      /** Format: int32 */
+      runtimeMinutes?: number | null;
+      still?: components['schemas']['ImageSet'] | null;
+    };
+    EpisodeInput: {
+      /**
+       * Format: date
+       * @description ISO date, `YYYY-MM-DD`.
+       */
+      airDate?: string | null;
+      name?: string | null;
+      /** Format: int32 */
+      number: number;
+      overview?: string | null;
+      /** Format: int32 */
+      runtimeMinutes?: number | null;
+    };
+    EpisodePatch: {
+      /** Format: date */
+      airDate?: string | null;
+      name?: string | null;
+      /** Format: int32 */
+      number?: number | null;
+      overview?: string | null;
+      /** Format: int32 */
+      runtimeMinutes?: number | null;
+    };
+    Genre: {
+      /** Format: int32 */
+      id: number;
+      /** @description Fallback when the client has no translation. */
+      name: string;
+      /** @description Also the translation key `genre.<slug>` in the clients. */
+      slug: string;
+    };
+    GenreCreate: {
+      name: string;
+    };
+    /**
+     * @description A genre that may not exist yet, from TMDB or typed by an admin. Matched by `tmdbId` when set,
+     *     otherwise by the slug derived from the name.
+     */
+    GenreInput: {
+      name: string;
+      /** Format: int32 */
+      tmdbId?: number | null;
+    };
+    /** @description Responsive image, presigned per UTC day (SPEC 8.3). Null until images arrive in Phase 3b. */
+    ImageSet: {
+      /** @description HSL triple for the skeleton, for example `160 84% 39%`. */
+      placeholderHsl?: string | null;
+      sources: components['schemas']['ImageSource'][];
+    };
+    ImageSource: {
+      /** @description `avif` or `webp`. */
+      format: string;
+      url: string;
+      /** Format: int32 */
+      width: number;
+    };
     LogoutResponse: {
       /**
        * @description Authentik's end-session endpoint. The browser navigates there so the Authentik session
@@ -154,6 +576,33 @@ export interface components {
       theme: string;
       uiLanguage: string;
     };
+    SeasonInput: {
+      episodes?: components['schemas']['EpisodeInput'][];
+      name?: string | null;
+      /** Format: int32 */
+      number: number;
+      overview?: string | null;
+      /** Format: int32 */
+      year?: number | null;
+    };
+    /** @description Fields of a season or episode patch. Left out means unchanged, null clears. */
+    SeasonPatch: {
+      name?: string | null;
+      /** Format: int32 */
+      number?: number | null;
+      overview?: string | null;
+      /** Format: int32 */
+      year?: number | null;
+    };
+    SeasonSummary: {
+      /** Format: int64 */
+      episodeCount: number;
+      name?: string | null;
+      /** Format: int32 */
+      number: number;
+      /** Format: int32 */
+      year?: number | null;
+    };
     /** @description Fields left out stay as they are. `preferredAudioLanguage: null` clears the preference. */
     SettingsPatch: {
       preferredAudioLanguage?: string | null;
@@ -170,6 +619,90 @@ export interface components {
       /** @description Always `r16a-stream`. */
       service: string;
     };
+    TitleCard: {
+      /** Format: uuid */
+      id: string;
+      kind: components['schemas']['TitleKind'];
+      name: string;
+      poster?: components['schemas']['ImageSet'] | null;
+      /** Format: int32 */
+      year?: number | null;
+    };
+    /** @description The title page (H8). */
+    TitleDetail: {
+      backdrop?: components['schemas']['ImageSet'] | null;
+      credits: components['schemas']['Credit'][];
+      genres: components['schemas']['Genre'][];
+      /** Format: uuid */
+      id: string;
+      kind: components['schemas']['TitleKind'];
+      /** @description Content languages with at least one ready variant. */
+      languages: string[];
+      name: string;
+      originalName?: string | null;
+      overview?: string | null;
+      poster?: components['schemas']['ImageSet'] | null;
+      /** Format: int32 */
+      runtimeMinutes?: number | null;
+      seasons: components['schemas']['SeasonSummary'][];
+      /** Format: int32 */
+      year?: number | null;
+    };
+    /** @description A whole title as an admin saves it, or as the TMDB lookup proposes it. */
+    TitleInput: {
+      backdropPath?: string | null;
+      credits?: components['schemas']['CreditInput'][];
+      /** @description Existing genres by id. */
+      genreIds?: number[];
+      kind: components['schemas']['TitleKind'];
+      name: string;
+      /** @description Genres to create when missing. */
+      newGenres?: components['schemas']['GenreInput'][];
+      originalName?: string | null;
+      overview?: string | null;
+      /**
+       * @description TMDB file path of the poster, for example `/kU3B75TyRiCgE270EyZnHjfivoq.jpg`. The API
+       *     downloads it on save (SPEC 8.2).
+       */
+      posterPath?: string | null;
+      /**
+       * Format: int32
+       * @description Movies only.
+       */
+      runtimeMinutes?: number | null;
+      /** @description Shows only. Create only, later changes go through the season and episode routes. */
+      seasons?: components['schemas']['SeasonInput'][];
+      /** Format: int32 */
+      tmdbId?: number | null;
+      /** Format: int32 */
+      year?: number | null;
+    };
+    /** @enum {string} */
+    TitleKind: 'movie' | 'show';
+    TitlePage: {
+      items: components['schemas']['TitleCard'][];
+      /** @description Pass back as `cursor` for the next page. Null on the last page. */
+      nextCursor?: string | null;
+    };
+    /**
+     * @description Fields of a title that `PATCH /admin/titles/{id}` may change. Left out means unchanged.
+     *     `genreIds`, `newGenres` and `credits` replace the whole set when present.
+     */
+    TitlePatch: {
+      backdropPath?: string | null;
+      credits?: components['schemas']['CreditInput'][] | null;
+      genreIds?: number[] | null;
+      name?: string | null;
+      newGenres?: components['schemas']['GenreInput'][] | null;
+      originalName?: string | null;
+      overview?: string | null;
+      /** @description A TMDB file path replaces the image, null removes it. */
+      posterPath?: string | null;
+      /** Format: int32 */
+      runtimeMinutes?: number | null;
+      /** Format: int32 */
+      year?: number | null;
+    };
   };
   responses: never;
   parameters: never;
@@ -179,6 +712,779 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  delete_episode: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Episode id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Deleted */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such episode, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  update_episode: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Episode id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EpisodePatch'];
+      };
+    };
+    responses: {
+      /** @description Saved */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Invalid field */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such episode, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description The number exists already */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  create_genre: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['GenreCreate'];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Genre'];
+        };
+      };
+      /** @description Invalid name */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description A genre with this slug exists */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  delete_season: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Season id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Deleted with its episodes */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such season, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  update_season: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Season id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SeasonPatch'];
+      };
+    };
+    responses: {
+      /** @description Saved */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Invalid field */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such season, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description The number exists already */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  create_episode: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Season id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EpisodeInput'];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Created'];
+        };
+      };
+      /** @description Invalid field */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such season, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description The number exists already */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  list: {
+    parameters: {
+      query?: {
+        /** @description `draft` or `published`, both when left out. */
+        status?: string;
+        /** @description Name search. */
+        q?: string;
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description One page of titles */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminTitlePage'];
+        };
+      };
+      /** @description Invalid filter or cursor */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TitleInput'];
+      };
+    };
+    responses: {
+      /** @description Created as a draft */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Created'];
+        };
+      };
+      /** @description Invalid field */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description The TMDB id, a season or an episode number exists already */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Title id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The title */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminTitle'];
+        };
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such title, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Title id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Deleted */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such title, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Title id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TitlePatch'];
+      };
+    };
+    responses: {
+      /** @description Saved */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Invalid field */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such title, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  publish: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Title id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Published */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such title, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  create_season: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Title id of a show */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SeasonInput'];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Created'];
+        };
+      };
+      /** @description Invalid field */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such title, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description The title is a movie, or the number exists already */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  unpublish: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Title id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Back to draft */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such title, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  lookup: {
+    parameters: {
+      query: {
+        /**
+         * @description A TMDB link (`https://www.themoviedb.org/movie/603`, `/tv/1396-breaking-bad`) or a
+         *     numeric id together with `kind`.
+         */
+        ref: string;
+        /** @description `movie` or `show`, needed with a numeric id. */
+        kind?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Editable draft */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TitleInput'];
+        };
+      };
+      /** @description Not a TMDB link or id */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Unknown on TMDB, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Too many lookups */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description TMDB is unreachable */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   revoke_sessions: {
     parameters: {
       query?: never;
@@ -223,13 +1529,13 @@ export interface operations {
   };
   callback: {
     parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        code: string | null;
-        state: string | null;
-        error: string | null;
+      query?: {
+        code?: string;
+        state?: string;
+        error?: string;
       };
+      header?: never;
+      path?: never;
       cookie?: never;
     };
     requestBody?: never;
@@ -252,12 +1558,12 @@ export interface operations {
   };
   login: {
     parameters: {
-      query?: never;
-      header?: never;
-      path: {
+      query?: {
         /** @description Same-origin path to return to after login. Anything else is replaced by `/`. */
-        returnTo: string | null;
+        returnTo?: string;
       };
+      header?: never;
+      path?: never;
       cookie?: never;
     };
     requestBody?: never;
@@ -312,6 +1618,108 @@ export interface operations {
       };
       /** @description CSRF header or Origin missing */
       403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  genres: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Genres by name */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Genre'][];
+        };
+      };
+      /** @description Unchanged since the given ETag */
+      304: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  recently_added: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Newest published titles */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TitlePage'];
+        };
+      };
+      /** @description Unchanged since the given ETag */
+      304: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  languages: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description BCP 47 tags */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': string[];
+        };
+      };
+      /** @description Unchanged since the given ETag */
+      304: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
         headers: {
           [name: string]: unknown;
         };
@@ -408,6 +1816,157 @@ export interface operations {
         content: {
           'application/json': components['schemas']['StatusResponse'];
         };
+      };
+    };
+  };
+  browse: {
+    parameters: {
+      query?: {
+        /** @description `movie` or `show`. */
+        type?: string;
+        /** @description Genre slug. */
+        genre?: string;
+        /** @description Content language, BCP 47. */
+        language?: string;
+        /** @description Search words. Present means relevance order, `sort` is ignored. */
+        q?: string;
+        /** @description `recent` (default) or `az`. */
+        sort?: string;
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description One page of published titles */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TitlePage'];
+        };
+      };
+      /** @description Unchanged since the given ETag */
+      304: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Invalid filter, sort or cursor */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Too many searches */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  title: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Title id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The title */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TitleDetail'];
+        };
+      };
+      /** @description Unchanged since the given ETag */
+      304: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such published title */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  episodes: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Title id */
+        id: string;
+        /** @description Season number, 0 for specials */
+        number: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Episodes in order */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Episode'][];
+        };
+      };
+      /** @description Unchanged since the given ETag */
+      304: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such published title or season */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

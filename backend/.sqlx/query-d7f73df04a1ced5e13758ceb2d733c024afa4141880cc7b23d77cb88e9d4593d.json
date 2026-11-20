@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update images set status = 'failed' where id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d7f73df04a1ced5e13758ceb2d733c024afa4141880cc7b23d77cb88e9d4593d"
+}

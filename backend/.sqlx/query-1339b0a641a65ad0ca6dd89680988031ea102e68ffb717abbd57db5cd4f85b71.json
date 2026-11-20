@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select distinct tl.language from title_languages tl join titles t on t.id = tl.title_id\n         where t.status = 'published' order by tl.language",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "language",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "title_languages",
+            "name": "language"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "1339b0a641a65ad0ca6dd89680988031ea102e68ffb717abbd57db5cd4f85b71"
+}

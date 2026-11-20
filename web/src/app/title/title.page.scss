@@ -1,0 +1,111 @@
+.title {
+  display: grid;
+  gap: 16px;
+  max-width: 60rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.75rem;
+}
+
+h2 {
+  margin: 0 0 8px;
+  font-size: 1.125rem;
+}
+
+.backdrop {
+  aspect-ratio: 16 / 9;
+  max-height: 360px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.head {
+  display: flex;
+  gap: 16px;
+  align-items: end;
+}
+
+.poster {
+  flex: 0 0 120px;
+  aspect-ratio: 2 / 3;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.meta {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.overview {
+  margin: 0;
+  max-width: 65ch;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    padding: 2px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    font-size: 0.875rem;
+  }
+}
+
+.credits {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px 16px;
+  margin: 0;
+
+  dt {
+    font-weight: 600;
+  }
+
+  dd {
+    margin: 0;
+    color: var(--text-muted);
+  }
+}
+
+.seasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.episodes {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--surface-raised);
+  }
+}
+
+.number {
+  min-width: 2ch;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ename {
+  flex: 1;
+}

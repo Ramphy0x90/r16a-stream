@@ -1,6 +1,6 @@
 # backend
 
-**Phase 2 done** (2026-11-20). Foundations and authentication. The other feature modules arrive in Phases 3 to 8.
+**Phase 3 done** (2026-11-20). Foundations, authentication, catalog, admin content and images. The rest in Phases 4 to 8.
 
 The r16a-stream API and transcode worker. Rust 2024, axum 0.8, sqlx 0.9 on PostgreSQL 15, crate `r16a-stream-backend`, binaries `api` and `worker`. API, data model and flows are in `docs/SPEC.md` sections 4 to 10.
 
@@ -26,9 +26,31 @@ The r16a-stream API and transcode worker. Rust 2024, axum 0.8, sqlx 0.9 on Postg
 - Handlers learn who calls only through `Caller`, `WebSession` or `Admin`. `Caller` takes a bearer token when an `Authorization` header is present, else the session cookie, and checks CSRF (`X-R16a-Request: 1` plus `Origin`) on cookie requests that change state.
 - `Admin` answers 404 to members and 401 to anonymous callers. Put it first among a handler's extractors and use `ApiPath` for path parameters, which turns a malformed id into 404.
 - Sealed values carry labelled AAD (`crypto::session_aad`, `crypto::flow_aad`). Never seal with raw ids.
+- Claim refresh takes a lease (`repository::claim_refresh`) and calls Authentik outside any transaction in a spawned task. Never hold a row lock or a pooled connection across a call to Authentik (DECISIONS 075).
+- Only `invalid_grant`, a lost access claim and a changed `sub` end a web session. Every other failure is an outage with a one hour grace.
+- Setup problems in Authentik (missing scope mappings, no refresh token, missing claim) are `LoginError::Setup`, logged with the request id and shown only as `/signin?error=setup&ref=`.
+- Bearer revocation compares `auth_time`, not `iat`, because Authentik keeps `auth_time` through refreshes.
 - Users are keyed by the Authentik instance origin and `sub` (DECISIONS 071). Use `AuthState::account_issuer`, never a provider issuer, when looking up users.
 - Every new route needs a row in `tests/authz.rs`, which reads `docs/openapi.json`. Regenerate the document first.
 - `tests/common/idp.rs` is the mock Authentik. Script it with `add_code`, `set_refresh_mode`, `set_next_refresh_claims`, and sign bearer tokens with `mobile_token`.
+
+## Catalog (Phase 3a)
+
+- `catalog/` holds browse, search and the title page (`handlers.rs`) and admin editing (`admin_handlers.rs`), with `service.rs` for rules and audit and `repository.rs` for SQL. `tmdb/` is the lookup, `client.rs` (HTTP, cache), `draft.rs` (TMDB JSON to `TitleInput`), `reference.rs` (link parsing).
+- Every user-facing catalog query carries `status = 'published'`. Admins see drafts only through `/admin/titles`.
+- Catalog reads answer through `http::etag::json_with_etag`, lists through `http::cursor`. A new list sort gets its own keyset query, never `OFFSET`.
+- Every admin mutation calls `service::audit` in the same transaction.
+- Structs that derive `IntoParams` for a query need `#[into_params(parameter_in = Query)]`, `tests/openapi.rs` checks it.
+- Routes that need more than 16 KiB set `DefaultBodyLimit` on the route, at most `app::MAX_BODY_LIMIT`.
+- `tests/common/tmdb.rs` is the mock TMDB. The authz matrix seeds a published show per row, use `{title}`, `{season}`, `{episode}`, `{user}` in its paths.
+
+## Images and jobs (Phase 3b)
+
+- `images/` holds the TMDB download (`ingest.rs`), presigned URLs (`urls.rs`), the ffmpeg runner (`ffmpeg.rs`) and the worker pipeline (`worker.rs`). `jobs/` is the queue SQL.
+- Every new ffmpeg or ffprobe call goes through `images::ffmpeg::run` or an equivalent with the same rules, and gets an argument builder that a unit test pins.
+- Worker SQL may only touch the columns the worker role is granted. Test new worker queries as that role, see `tests/images.rs`.
+- Job failure classes follow SPEC 7.2. Storage problems requeue with `requeue_storage`, invalid input uses `fail_invalid`, the rest `fail_transient`. `failure_detail` takes fixed texts, never tool output.
+- `bench.rs` mirrors the catalog SQL. Change both when a hot query changes, and rerun `seed --bench`.
 
 ## Module layout (planned)
 

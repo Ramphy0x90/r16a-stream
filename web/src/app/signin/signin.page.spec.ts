@@ -9,7 +9,7 @@ import { SessionService } from '../core/auth/session.service';
 import { SigninPage } from './signin.page';
 
 describe('SigninPage', () => {
-  function setup(inputs: { error?: string; returnTo?: string }) {
+  function setup(inputs: { error?: string; returnTo?: string; ref?: string }) {
     TestBed.configureTestingModule({
       imports: [SigninPage],
       providers: [
@@ -32,6 +32,25 @@ describe('SigninPage', () => {
     expect(setup({ error: 'denied' }).componentInstance.message()).toBe('denied');
     TestBed.resetTestingModule();
     expect(setup({ error: '<script>' }).componentInstance.message()).toBeNull();
+  });
+
+  it('shows a setup reference only in the request id format', () => {
+    const ok = setup({ error: 'setup', ref: '0123456789abcdef0123456789abcdef' });
+    expect(ok.componentInstance.reference()).toBe('0123456789abcdef0123456789abcdef');
+    expect((ok.nativeElement as HTMLElement).querySelector('code')?.textContent).toBe(
+      '0123456789abcdef0123456789abcdef',
+    );
+    TestBed.resetTestingModule();
+    expect(
+      setup({ error: 'setup', ref: 'offline_access is missing' }).componentInstance.reference(),
+    ).toBeNull();
+    TestBed.resetTestingModule();
+    expect(
+      setup({
+        error: 'failed',
+        ref: '0123456789abcdef0123456789abcdef',
+      }).componentInstance.reference(),
+    ).toBeNull();
   });
 
   it('starts the login with the remembered page', () => {

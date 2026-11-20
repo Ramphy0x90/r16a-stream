@@ -1,0 +1,164 @@
+<a routerLink="/admin">{{ 'admin.back' | transloco }}</a>
+
+@if (error(); as key) {
+  <p class="error-text" role="alert">{{ key | transloco }}</p>
+}
+@if (saved()) {
+  <p role="status">{{ 'admin.saved' | transloco }}</p>
+}
+
+@if (title(); as t) {
+  <div class="bar">
+    <h1>{{ t.name }}</h1>
+    <div class="inline">
+      <span class="muted">{{ 'admin.status.' + t.status | transloco }}</span>
+      @if (t.status === 'draft') {
+        <button
+          class="btn btn-primary"
+          type="button"
+          [disabled]="busy()"
+          (click)="setPublished(true)"
+        >
+          {{ 'admin.publish' | transloco }}
+        </button>
+      } @else {
+        <button class="btn" type="button" [disabled]="busy()" (click)="setPublished(false)">
+          {{ 'admin.unpublish' | transloco }}
+        </button>
+      }
+      <button class="btn btn-danger" type="button" [disabled]="busy()" (click)="confirmRemove()">
+        {{ 'admin.delete' | transloco }}
+      </button>
+    </div>
+  </div>
+
+  @if (t.poster || t.backdrop) {
+    <div class="inline">
+      @if (t.poster; as p) {
+        <div class="thumb"><app-picture [image]="p" sizes="120px" /></div>
+        <button class="btn" type="button" [disabled]="busy()" (click)="dropImage('posterPath')">
+          {{ 'admin.images.removePoster' | transloco }}
+        </button>
+      }
+      @if (t.backdrop) {
+        <button class="btn" type="button" [disabled]="busy()" (click)="dropImage('backdropPath')">
+          {{ 'admin.images.removeBackdrop' | transloco }}
+        </button>
+      }
+    </div>
+  }
+
+  <div class="form">
+    <label class="field">
+      <span>{{ 'admin.field.name' | transloco }}</span>
+      <input type="text" maxlength="300" [value]="t.name" (input)="set('name', $event)" />
+    </label>
+    <label class="field">
+      <span>{{ 'admin.field.originalName' | transloco }}</span>
+      <input
+        type="text"
+        maxlength="300"
+        [value]="t.originalName ?? ''"
+        (input)="set('originalName', $event)"
+      />
+    </label>
+    <label class="field">
+      <span>{{ 'admin.field.year' | transloco }}</span>
+      <input
+        type="number"
+        min="1870"
+        max="2200"
+        [value]="t.year ?? ''"
+        (input)="set('year', $event)"
+      />
+    </label>
+    @if (t.kind === 'movie') {
+      <label class="field">
+        <span>{{ 'admin.field.runtime' | transloco }}</span>
+        <input
+          type="number"
+          min="1"
+          max="1440"
+          [value]="t.runtimeMinutes ?? ''"
+          (input)="set('runtimeMinutes', $event)"
+        />
+      </label>
+    }
+    <label class="field wide">
+      <span>{{ 'admin.field.overview' | transloco }}</span>
+      <textarea
+        maxlength="5000"
+        [value]="t.overview ?? ''"
+        (input)="set('overview', $event)"
+      ></textarea>
+    </label>
+  </div>
+  <div class="bar">
+    <button class="btn btn-primary" type="button" [disabled]="busy()" (click)="save()">
+      {{ 'admin.save' | transloco }}
+    </button>
+  </div>
+
+  @if (t.kind === 'show') {
+    <section class="panel" aria-labelledby="seasons-h">
+      <h2 id="seasons-h">{{ 'title.seasons' | transloco }}</h2>
+      @for (s of t.seasons; track s.id) {
+        <div class="panel">
+          <div class="bar">
+            <h3>
+              {{
+                s.number === 0
+                  ? ('title.specials' | transloco)
+                  : ('title.season' | transloco: { number: s.number })
+              }}
+            </h3>
+            <button class="btn" type="button" [disabled]="busy()" (click)="removeSeason(s.id)">
+              {{ 'admin.remove' | transloco }}
+            </button>
+          </div>
+          <ul class="list">
+            @for (e of s.episodes; track e.id) {
+              <li>
+                <span class="muted">{{ e.number }}</span>
+                <span class="grow">{{
+                  e.name ?? ('title.episode' | transloco: { number: e.number })
+                }}</span>
+                <button class="btn" type="button" [disabled]="busy()" (click)="removeEpisode(e.id)">
+                  {{ 'admin.remove' | transloco }}
+                </button>
+              </li>
+            }
+          </ul>
+          <form class="inline" (submit)="addEpisode(s.id, $event)">
+            <label class="field">
+              <span>{{ 'admin.field.number' | transloco }}</span>
+              <input name="number" type="number" min="1" max="9999" required />
+            </label>
+            <label class="field grow">
+              <span>{{ 'admin.field.name' | transloco }}</span>
+              <input name="name" type="text" maxlength="300" />
+            </label>
+            <button class="btn" type="submit" [disabled]="busy()">
+              {{ 'admin.addEpisode' | transloco }}
+            </button>
+          </form>
+        </div>
+      }
+      <form class="inline" (submit)="addSeason($event)">
+        <label class="field">
+          <span>{{ 'admin.field.number' | transloco }}</span>
+          <input name="number" type="number" min="0" max="999" required />
+        </label>
+        <label class="field grow">
+          <span>{{ 'admin.field.name' | transloco }}</span>
+          <input name="name" type="text" maxlength="300" />
+        </label>
+        <button class="btn" type="submit" [disabled]="busy()">
+          {{ 'admin.addSeason' | transloco }}
+        </button>
+      </form>
+    </section>
+  }
+} @else if (!error()) {
+  <p role="status">{{ 'catalog.loading' | transloco }}</p>
+}

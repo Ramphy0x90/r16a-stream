@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "delete from tmdb_cache where expires_at < now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "78d0572ab347494e329a5dc202de2c13bb5353deaa2583cb3d0a5b694d712b59"
+}

@@ -15,6 +15,6 @@ Dio buildApiClient(String baseUrl, TokenManager tokens) {
       followRedirects: false,
     ),
   );
-  dio.interceptors.add(AuthInterceptor(tokens, dio));
+  dio.interceptors.add(AuthInterceptor(tokens, dio, baseUrl));
   return dio;
 }

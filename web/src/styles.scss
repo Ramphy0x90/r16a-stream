@@ -46,3 +46,73 @@ a {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+// Shared controls. Components add layout only, the look lives here once.
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+.btn-primary {
+  border-color: transparent;
+  background: var(--brand-fill);
+  color: var(--text-on-brand);
+  font-weight: 600;
+
+  &:hover:not(:disabled) {
+    background: var(--brand-fill-hover);
+  }
+}
+
+.btn-danger {
+  border-color: transparent;
+  background: var(--danger-fill);
+  color: var(--text-on-danger);
+}
+
+.field {
+  display: grid;
+  gap: 4px;
+
+  > span {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+  }
+
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    background: var(--surface-sunken);
+    color: var(--text);
+    font: inherit;
+  }
+
+  textarea {
+    min-height: 120px;
+    resize: vertical;
+  }
+}
+
+.error-text {
+  color: var(--danger-text);
+}
