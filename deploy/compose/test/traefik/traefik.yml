@@ -1,0 +1,14 @@
+# Static configuration of the test Traefik. Only what the bucket routes need.
+entryPoints:
+  web:
+    address: ":80"
+    transport:
+      respondingTimeouts:
+        # The value the cluster's websecure entrypoint needs for 50 MiB parts (OPERATING 6).
+        readTimeout: 300s
+providers:
+  file:
+    filename: /etc/traefik/dynamic.yml
+accessLog: {}
+log:
+  level: WARN

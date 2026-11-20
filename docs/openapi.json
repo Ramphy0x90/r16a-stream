@@ -1,0 +1,367 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "r16a-stream API",
+    "description": "Private streaming API. See docs/SPEC.md section 5.",
+    "license": {
+      "name": ""
+    },
+    "version": "1"
+  },
+  "paths": {
+    "/api/v1/admin/users/{id}/revoke-sessions": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Ends every web session of a user now and refuses their mobile tokens issued until now.",
+        "description": "It is not a ban. A user still in `r16a-stream-users` can sign in again, removing them from\nthe group in Authentik is the ban (OPERATING 8).",
+        "operationId": "revoke_sessions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "User id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Sessions revoked"
+          },
+          "401": {
+            "description": "Not signed in"
+          },
+          "403": {
+            "description": "CSRF header or Origin missing"
+          },
+          "404": {
+            "description": "No such user, or the caller is not an admin"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/callback": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Finishes the web login, sets the session cookie and returns to the app.",
+        "operationId": "callback",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "state",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "error",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Signed in, redirect to the saved path. On failure, redirect to the sign-in page with an error"
+          },
+          "429": {
+            "description": "Too many login attempts from this address"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Starts the web login and redirects to Authentik.",
+        "operationId": "login",
+        "parameters": [
+          {
+            "name": "returnTo",
+            "in": "path",
+            "description": "Same-origin path to return to after login. Anything else is replaced by `/`.",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 512
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect to the Authentik authorize endpoint, sets the flow cookie"
+          },
+          "429": {
+            "description": "Too many login attempts from this address"
+          },
+          "503": {
+            "description": "Authentik is unreachable"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Ends the web session, revokes its refresh token and clears the cookie.",
+        "operationId": "logout",
+        "responses": {
+          "200": {
+            "description": "Signed out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No web session"
+          },
+          "403": {
+            "description": "CSRF header or Origin missing"
+          }
+        }
+      }
+    },
+    "/api/v1/me": {
+      "get": {
+        "tags": [
+          "me"
+        ],
+        "summary": "The signed-in user. Provisions the user on a first mobile call.",
+        "operationId": "get_me",
+        "responses": {
+          "200": {
+            "description": "The caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in"
+          }
+        }
+      }
+    },
+    "/api/v1/me/settings": {
+      "patch": {
+        "tags": [
+          "me"
+        ],
+        "summary": "Changes theme, UI language or preferred audio language.",
+        "operationId": "patch_settings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingsPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Updated settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid value"
+          },
+          "401": {
+            "description": "Not signed in"
+          },
+          "403": {
+            "description": "CSRF header or Origin missing"
+          }
+        }
+      }
+    },
+    "/api/v1/status": {
+      "get": {
+        "tags": [
+          "status"
+        ],
+        "summary": "Lets the web app check that the API is reachable through the same origin.",
+        "operationId": "status",
+        "responses": {
+          "200": {
+            "description": "The API is up",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "LogoutResponse": {
+        "type": "object",
+        "properties": {
+          "endSessionUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Authentik's end-session endpoint. The browser navigates there so the Authentik session\nends too, and the provider's logout flow sends it back to the app. Null when Authentik\nis unreachable, the local session is gone either way."
+          }
+        }
+      },
+      "MeResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "displayName",
+          "isAdmin",
+          "uiLanguage",
+          "theme"
+        ],
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "isAdmin": {
+            "type": "boolean",
+            "description": "The admin claim of this request's session or token. The admin area in the clients is\na convenience, the API checks admin rights on every admin route."
+          },
+          "preferredAudioLanguage": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "BCP 47 tag of the audio language to prefer, null for none."
+          },
+          "theme": {
+            "type": "string",
+            "description": "`dark`, `light` or `system`."
+          },
+          "uiLanguage": {
+            "type": "string"
+          }
+        }
+      },
+      "SettingsPatch": {
+        "type": "object",
+        "description": "Fields left out stay as they are. `preferredAudioLanguage: null` clears the preference.",
+        "properties": {
+          "preferredAudioLanguage": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 35
+          },
+          "theme": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 8
+          },
+          "uiLanguage": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 8
+          }
+        },
+        "additionalProperties": false
+      },
+      "StatusResponse": {
+        "type": "object",
+        "description": "Answer of `GET /api/v1/status`. Deliberately free of versions and hostnames.",
+        "required": [
+          "service",
+          "apiVersion"
+        ],
+        "properties": {
+          "apiVersion": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Major version of this API, the `v1` in the path.",
+            "minimum": 0
+          },
+          "service": {
+            "type": "string",
+            "description": "Always `r16a-stream`."
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "status",
+      "description": "Reachability"
+    },
+    {
+      "name": "auth",
+      "description": "Web login through the backend (BFF), SPEC 6.3"
+    },
+    {
+      "name": "me",
+      "description": "The signed-in user"
+    },
+    {
+      "name": "admin",
+      "description": "Admin only, 404 for everyone else"
+    }
+  ]
+}

@@ -1,0 +1,143 @@
+# Rendered at container start by envsubst. Only variables that exist in the environment are
+# replaced, so nginx runtime variables stay as they are. Every R16A_ variable needs an ENV
+# default in the Dockerfile.
+#
+# In Kubernetes, Traefik routes /api and the bucket paths itself and this server only sees the
+# static app. The /api and bucket blocks serve compose and the dev profile, where nginx stands
+# in for Traefik with the same rules (SPEC 10.3, 18.2).
+server {
+  listen ${R16A_WEB_LISTEN};
+  root /usr/share/nginx/html;
+
+  # A fresh random value per response, used as the CSP nonce in the header and the page.
+  set $csp_nonce $request_id;
+
+  location = /healthz {
+    access_log off;
+    default_type text/plain;
+    return 200 "ok\n";
+  }
+
+  # Playback paths carry a token, so they are never logged (SPEC 9.5).
+  location ^~ /api/v1/play/ {
+    access_log off;
+    proxy_pass http://${R16A_BACKEND_UPSTREAM};
+    proxy_http_version 1.1;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+
+  location /api/ {
+    client_max_body_size 4m;
+    proxy_pass http://${R16A_BACKEND_UPSTREAM};
+    proxy_http_version 1.1;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_read_timeout 60s;
+    proxy_buffering off;
+  }
+
+  # Media objects, presigned GET and HEAD only, credentials stripped, never logged.
+  location = /r16a-stream-media/ {
+    return 403;
+  }
+  location ^~ /r16a-stream-media/ {
+    access_log off;
+    limit_except GET {
+      deny all;
+    }
+    include /etc/nginx/snippets/bucket-headers.conf;
+    proxy_pass http://${R16A_GARAGE_UPSTREAM};
+    proxy_http_version 1.1;
+    proxy_set_header Host $http_host;
+    proxy_set_header Cookie "";
+    proxy_set_header Authorization "";
+    proxy_buffering off;
+  }
+
+  # Upload parts, presigned PUT with partNumber and uploadId only, never UploadPartCopy.
+  location ^~ /r16a-stream-uploads/ {
+    access_log off;
+    if ($request_method != PUT) {
+      return 403;
+    }
+    if ($arg_partNumber !~ "^[0-9]{1,5}$") {
+      return 403;
+    }
+    if ($arg_uploadId = "") {
+      return 403;
+    }
+    if ($http_x_amz_copy_source) {
+      return 403;
+    }
+    # One 50 MiB part plus headroom, streamed to Garage without buffering to disk.
+    client_max_body_size 51m;
+    proxy_request_buffering off;
+    proxy_read_timeout 300s;
+    proxy_send_timeout 300s;
+    include /etc/nginx/snippets/bucket-headers.conf;
+    proxy_pass http://${R16A_GARAGE_UPSTREAM};
+    proxy_http_version 1.1;
+    proxy_set_header Host $http_host;
+    proxy_set_header Cookie "";
+    proxy_set_header Authorization "";
+  }
+
+  # The bare bucket names are refused. Exact matches, because nginx would otherwise answer the
+  # missing trailing slash with a redirect into the proxied location.
+  location = /r16a-stream-media {
+    return 403;
+  }
+  location = /r16a-stream-uploads {
+    return 403;
+  }
+  location = /r16a-stream-uploads/ {
+    return 403;
+  }
+
+  # Hashed bundles never change, so they can be cached for a year.
+  location ~* "^/(?:chunk|main|polyfills|styles)-[A-Za-z0-9_-]+\.(?:js|css)$" {
+    include /etc/nginx/snippets/security-headers.conf;
+    add_header Cache-Control "public, max-age=31536000, immutable" always;
+    try_files $uri =404;
+  }
+
+  location ^~ /media/ {
+    include /etc/nginx/snippets/security-headers.conf;
+    add_header Cache-Control "public, max-age=31536000, immutable" always;
+    try_files $uri =404;
+  }
+
+  location ^~ /i18n/ {
+    include /etc/nginx/snippets/security-headers.conf;
+    add_header Cache-Control "no-cache" always;
+    try_files $uri =404;
+  }
+
+  # index.html carries the per-response nonce, so it is never cached.
+  location = /index.html {
+    include /etc/nginx/snippets/security-headers.conf;
+    add_header Cache-Control "no-store" always;
+    sub_filter_once off;
+    sub_filter_types text/html;
+    sub_filter "__CSP_NONCE__" $csp_nonce;
+  }
+
+  location = / {
+    include /etc/nginx/snippets/security-headers.conf;
+    add_header Cache-Control "no-store" always;
+    sub_filter_once off;
+    sub_filter_types text/html;
+    sub_filter "__CSP_NONCE__" $csp_nonce;
+    try_files /index.html =404;
+  }
+
+  # Everything else is a small unhashed file or an app route served by index.html.
+  location / {
+    include /etc/nginx/snippets/security-headers.conf;
+    add_header Cache-Control "no-cache" always;
+    try_files $uri /index.html;
+  }
+}

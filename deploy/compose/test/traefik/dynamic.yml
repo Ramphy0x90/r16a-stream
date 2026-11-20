@@ -1,0 +1,98 @@
+# Mirrors the bucket routing that deploy/k8s/ingress.yaml will declare as an IngressRoute
+# (SPEC 10.3), written for Traefik's file provider so it runs in compose. Keep both in step.
+#
+# Host localhost routes to the dev Garage plus one dead endpoint, which exercises the retry
+# and dial timeout. Host echo.localhost routes the same rules to a header echo, which proves
+# that credentials never reach the upstream.
+http:
+  routers:
+    media:
+      rule: "Host(`localhost`) && PathRegexp(`^/r16a-stream-media/.+`) && (Method(`GET`) || Method(`HEAD`))"
+      priority: 300
+      entryPoints: [web]
+      service: garage-read
+      middlewares: [strip-credentials, bucket-headers, garage-retry]
+      observability:
+        accessLogs: false
+    uploads:
+      rule: "Host(`localhost`) && PathRegexp(`^/r16a-stream-uploads/.+`) && Method(`PUT`) && QueryRegexp(`partNumber`, `^[0-9]{1,5}$`) && QueryRegexp(`uploadId`, `.+`) && !HeaderRegexp(`X-Amz-Copy-Source`, `.*`)"
+      priority: 300
+      entryPoints: [web]
+      service: garage-write
+      middlewares: [strip-credentials, bucket-headers]
+      observability:
+        accessLogs: false
+    deny:
+      rule: "Host(`localhost`) && (PathPrefix(`/r16a-stream-media`) || PathPrefix(`/r16a-stream-uploads`))"
+      priority: 1
+      entryPoints: [web]
+      service: garage-write
+      middlewares: [deny-all]
+
+    echo-media:
+      rule: "Host(`echo.localhost`) && PathRegexp(`^/r16a-stream-media/.+`) && (Method(`GET`) || Method(`HEAD`))"
+      priority: 300
+      entryPoints: [web]
+      service: echo
+      middlewares: [strip-credentials, bucket-headers]
+    echo-uploads:
+      rule: "Host(`echo.localhost`) && PathRegexp(`^/r16a-stream-uploads/.+`) && Method(`PUT`) && QueryRegexp(`partNumber`, `^[0-9]{1,5}$`) && QueryRegexp(`uploadId`, `.+`) && !HeaderRegexp(`X-Amz-Copy-Source`, `.*`)"
+      priority: 300
+      entryPoints: [web]
+      service: echo
+      middlewares: [strip-credentials, bucket-headers]
+
+  middlewares:
+    # An empty value deletes the header (Traefik 3.6.7 pkg/middlewares/headers).
+    strip-credentials:
+      headers:
+        customRequestHeaders:
+          Cookie: ""
+          Authorization: ""
+    bucket-headers:
+      headers:
+        customResponseHeaders:
+          Content-Security-Policy: "default-src 'none'; sandbox"
+          X-Content-Type-Options: "nosniff"
+          Referrer-Policy: "no-referrer"
+          Cross-Origin-Resource-Policy: "same-origin"
+    # Only on the media router, so only GET and HEAD are retried (C5).
+    garage-retry:
+      retry:
+        attempts: 2
+    # Every client address is outside 127.0.0.1/32, so this answers 403 to everyone.
+    deny-all:
+      ipAllowList:
+        sourceRange: ["127.0.0.1/32"]
+
+  services:
+    # Reads. A failed dial marks the endpoint down for the failure window, so after the first
+    # request only the live node is used. Garage answers reads from one node, so a 5xx here
+    # really means that node is unhealthy.
+    garage-read:
+      loadBalancer:
+        serversTransport: garage-transport
+        passiveHealthCheck:
+          maxFailedAttempts: 1
+          failureWindow: 30s
+        servers:
+          - url: "http://garage:3900"
+          # TEST-NET-1, never routable. Stands in for a Garage node that is down.
+          - url: "http://192.0.2.1:3900"
+    # Writes. No passive health check, because with replication 2 every node answers 503 to
+    # writes while one node is down, which would mark the healthy node down as well.
+    garage-write:
+      loadBalancer:
+        serversTransport: garage-transport
+        servers:
+          - url: "http://garage:3900"
+          - url: "http://192.0.2.1:3900"
+    echo:
+      loadBalancer:
+        servers:
+          - url: "http://echo:80"
+
+  serversTransports:
+    garage-transport:
+      forwardingTimeouts:
+        dialTimeout: 2s

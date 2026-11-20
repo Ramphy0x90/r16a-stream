@@ -1,0 +1,28 @@
+# Development Garage, one node. Every token and secret below is a published dev-only value that
+# works only against this local container. Production settings are in docs/OPERATING.md 5.
+
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "lmdb"
+
+# One node on one machine. Production runs two nodes with replication 2, and the degraded
+# behaviour is covered by backend/tests/garage_degraded.rs with two containers.
+replication_factor = 1
+
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "127.0.0.1:3901"
+rpc_secret = "cd5b848b475b88b1f59507e8cc803cbcb43562301d10e92ef6bfe3c77a2b1ab8"
+
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "[::]:3900"
+# Must not be a suffix of the host the browser uses (localhost), otherwise Garage would read
+# the host as a vhost-style bucket name and every presigned URL would fail.
+root_domain = ".s3.garage.invalid"
+
+[admin]
+api_bind_addr = "[::]:3903"
+# Read-only token for /metrics, the only Garage credential the API gets besides its S3 key.
+metrics_token = "dev-only-metrics-f74cb949c7b1a28ba6b29daef067730a5a8d04f9770eaa03"
+# Used by init.sh only. The app never receives it.
+admin_token = "dev-only-admin-f3700b0ac66d205e2ae37a7d4861a0277c9acf65a2ce5deb"

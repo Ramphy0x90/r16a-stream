@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update sessions set is_admin = $2, refresh_token_enc = $3, key_id = $4, claims_refreshed_at = now()\n         where id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Bytea",
+        "Int2"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "daa5e899da3a83c9482bb880ad9cbaf65cfd1a9e5e06a4cb724c8d1c11261ded"
+}

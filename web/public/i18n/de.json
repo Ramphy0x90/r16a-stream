@@ -1,0 +1,29 @@
+{
+  "app": {
+    "name": "r16a-stream"
+  },
+  "shell": {
+    "skipToContent": "Zum Inhalt springen",
+    "signOut": "Abmelden"
+  },
+  "home": {
+    "title": "Start",
+    "heading": "Willkommen",
+    "api": {
+      "checking": "Verbindung zum Server wird geprüft…",
+      "reachable": "Mit dem Server verbunden.",
+      "unreachable": "Der Server ist gerade nicht erreichbar. Bitte versuche es später erneut."
+    }
+  },
+  "signin": {
+    "title": "Anmelden",
+    "heading": "Bei r16a-stream anmelden",
+    "lead": "Du meldest dich mit deinem r16a-Konto an. Du wirst zur Anmeldeseite und danach hierher zurückgeleitet.",
+    "button": "Anmelden",
+    "error": {
+      "failed": "Die Anmeldung hat nicht geklappt. Bitte versuche es erneut.",
+      "denied": "Dein Konto hat keinen Zugang zu r16a-stream. Bitte eine Administratorin oder einen Administrator, dich hinzuzufügen.",
+      "unavailable": "Der Server ist gerade nicht erreichbar. Bitte versuche es später erneut."
+    }
+  }
+}

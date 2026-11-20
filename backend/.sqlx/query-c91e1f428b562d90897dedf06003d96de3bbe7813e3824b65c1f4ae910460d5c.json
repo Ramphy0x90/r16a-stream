@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update users set sessions_revoked_at = now() where id = $1 returning id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c91e1f428b562d90897dedf06003d96de3bbe7813e3824b65c1f4ae910460d5c"
+}

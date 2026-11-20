@@ -1,0 +1,77 @@
+[package]
+name = "r16a-stream-backend"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.100"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "api"
+path = "src/bin/api.rs"
+
+[[bin]]
+name = "worker"
+path = "src/bin/worker.rs"
+
+[dependencies]
+axum = "0.8.9"
+base64 = { version = "0.23.1", default-features = false, features = ["std"] }
+chacha20poly1305 = { version = "0.11.0", default-features = false, features = ["alloc"] }
+dotenvy = "0.15.7"
+governor = { version = "0.10.4", default-features = false, features = ["std", "dashmap", "quanta"] }
+jiff = "0.2"
+jsonwebtoken = { version = "12.0.0", default-features = false, features = ["rust_crypto"] }
+rand = { version = "0.10.3", default-features = false, features = ["std", "sys_rng"] }
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls-no-provider", "http2", "stream"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+rusty-s3 = "0.11.0"
+secrecy = "0.10.3"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha2 = "0.11.1"
+subtle = "2.6.1"
+sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "tls-rustls-ring-webpki", "postgres", "macros", "migrate", "uuid", "time", "json", "derive"] }
+thiserror = "2.0.21"
+time = { version = "0.3.55", features = ["serde", "formatting", "parsing"] }
+tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread", "net", "signal", "time", "sync", "io-util", "fs"] }
+tower = { version = "0.5.3", features = ["util"] }
+tower-http = { version = "0.7.1", features = ["trace", "timeout", "limit", "set-header", "catch-panic", "sensitive-headers", "compression-br", "compression-gzip", "util"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "json", "fmt"] }
+url = { version = "2.5.8", features = ["serde"] }
+utoipa = { version = "6.0.0", features = ["uuid", "time"] }
+uuid = { version = "1.29.2", features = ["v4", "serde"] }
+
+[dev-dependencies]
+# Generates the signing key of the mock Authentik at test time, so no private key is committed.
+# The same version jsonwebtoken already brings in (DECISIONS 070).
+rsa = { version = "0.10.0", default-features = false, features = ["std", "encoding", "getrandom"] }
+tokio = { version = "1.54.1", features = ["test-util"] }
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+# Pedantic lints that only add noise here, each with the reason it is off.
+module_name_repetitions = "allow"   # feature modules name their types after the module on purpose
+missing_errors_doc = "allow"        # every public fallible fn returns a typed error that documents itself
+must_use_candidate = "allow"        # would annotate nearly every getter without catching bugs
+unwrap_used = "warn"
+expect_used = "warn"
+
+# RSA key generation in the tests is far too slow without optimisation.
+[profile.dev.package.rsa]
+opt-level = 3
+[profile.dev.package.crypto-bigint]
+opt-level = 3
+[profile.dev.package.crypto-primes]
+opt-level = 3
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

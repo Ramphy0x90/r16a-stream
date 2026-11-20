@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "insert into component_health (component, instance, storage_writable, checked_at)\n           values ($1, $2, $3, now())\n           on conflict (component, instance)\n           do update set storage_writable = excluded.storage_writable, checked_at = excluded.checked_at",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7998ee044149fb9b9e54d7a2be2eb9876407fce005322f87641515244d98e135"
+}

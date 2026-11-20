@@ -1,0 +1,24 @@
+# Keeps pinned action SHAs, image digests and lockfiles current. Every update arrives as a pull
+# request, and a new dependency still needs approval as described in docs/DECISIONS.md.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+  - package-ecosystem: cargo
+    directory: /backend
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 5
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 5
+  - package-ecosystem: docker
+    directories: [/backend, /web]
+    schedule: { interval: weekly }
+  - package-ecosystem: docker-compose
+    directories: [/deploy/compose, /deploy/compose/test/traefik]
+    schedule: { interval: weekly }
+  - package-ecosystem: pub
+    directory: /mobile
+    schedule: { interval: weekly }

@@ -1,0 +1,16 @@
+h1 {
+  margin: 0 0 12px;
+  font-size: 1.5rem;
+}
+
+.status {
+  color: var(--text-muted);
+
+  &.reachable {
+    color: var(--success-text);
+  }
+
+  &.unreachable {
+    color: var(--danger-text);
+  }
+}

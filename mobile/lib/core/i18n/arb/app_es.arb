@@ -1,0 +1,13 @@
+{
+  "@@locale": "es",
+  "appName": "r16a-stream",
+  "homeHeading": "Bienvenido",
+  "homeComingSoon": "Tu biblioteca aparecerá aquí.",
+  "signInHeading": "Inicia sesión en r16a-stream",
+  "signInLead": "Inicias sesión con tu cuenta r16a en el navegador y luego vuelves aquí.",
+  "signInButton": "Iniciar sesión",
+  "signInFailed": "No se pudo iniciar sesión. Inténtalo de nuevo.",
+  "signInDenied": "Tu cuenta no tiene acceso a r16a-stream. Pide a un administrador que te añada.",
+  "signInUnavailable": "No se puede acceder al servidor en este momento. Inténtalo más tarde.",
+  "signOut": "Cerrar sesión"
+}

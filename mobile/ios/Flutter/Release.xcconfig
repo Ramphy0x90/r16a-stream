@@ -1,0 +1,3 @@
+#include "Generated.xcconfig"
+// Redirect scheme of the production Authentik provider, also used by profile builds.
+R16A_OIDC_SCHEME=cloud.r16a.stream

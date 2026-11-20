@@ -1,0 +1,29 @@
+{
+  "app": {
+    "name": "r16a-stream"
+  },
+  "shell": {
+    "skipToContent": "Saltar al contenido",
+    "signOut": "Cerrar sesión"
+  },
+  "home": {
+    "title": "Inicio",
+    "heading": "Bienvenido",
+    "api": {
+      "checking": "Comprobando la conexión con el servidor…",
+      "reachable": "Conectado al servidor.",
+      "unreachable": "No se puede acceder al servidor en este momento. Inténtalo de nuevo más tarde."
+    }
+  },
+  "signin": {
+    "title": "Iniciar sesión",
+    "heading": "Inicia sesión en r16a-stream",
+    "lead": "Inicia sesión con tu cuenta r16a. Irás a la página de inicio de sesión y luego volverás aquí.",
+    "button": "Iniciar sesión",
+    "error": {
+      "failed": "No se pudo iniciar sesión. Inténtalo de nuevo.",
+      "denied": "Tu cuenta no tiene acceso a r16a-stream. Pide a un administrador que te añada.",
+      "unavailable": "No se puede acceder al servidor en este momento. Inténtalo más tarde."
+    }
+  }
+}

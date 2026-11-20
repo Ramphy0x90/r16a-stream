@@ -1,0 +1,239 @@
+name: Build & Deploy r16a-stream
+
+on:
+  push:
+    branches: [main]
+    # The mobile app and docs are not part of the deployment.
+    paths-ignore:
+      - "mobile/**"
+      - "docs/**"
+      - "**.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Third-party actions are pinned to commit SHAs, verified against their tags, because a moved
+# tag could otherwise run foreign code on the runner that holds the registry login and the
+# cluster kubeconfig. Dependabot proposes updates.
+#
+# The build-and-deploy job is added in Phase 9 together with deploy/k8s (SPEC 19.5).
+jobs:
+  test-backend:
+    runs-on: self-hosted
+    env:
+      SQLX_OFFLINE: "true"
+      COMPOSE_PROJECT_NAME: r16a-ci-${{ github.run_id }}-${{ github.run_attempt }}
+      R16A_REQUIRE_INTEGRATION: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable branch, 2026-10-16
+        with:
+          toolchain: 1.100.0
+          components: rustfmt, clippy
+
+      - name: Format and lint
+        working-directory: backend
+        run: |
+          cargo fmt --check
+          cargo clippy --all-targets --locked -- -D warnings
+
+      # Postgres 15 and Garage v1.0.1 exactly as in development, on free ports so parallel
+      # runs on the shared runner cannot collide. The Garage init proves the key scoping.
+      - name: Start Postgres, Garage and the Traefik harness
+        run: |
+          export R16A_DEV_DB_PORT= R16A_DEV_S3_PORT= R16A_DEV_GARAGE_ADMIN_PORT=
+          docker compose -f deploy/compose/docker-compose.dev.yml up -d db garage garage-init
+          docker compose -f deploy/compose/docker-compose.dev.yml wait garage-init
+          for _ in $(seq 60); do
+            [ "$(docker inspect -f '{{.State.Health.Status}}' "$COMPOSE_PROJECT_NAME-db-1")" = healthy ] && break
+            sleep 1
+          done
+          port() { docker compose -f deploy/compose/docker-compose.dev.yml port "$1" "$2" | cut -d: -f2; }
+          db=$(port db 5432); s3=$(port garage 3900); admin=$(port garage 3903)
+          R16A_DEV_NETWORK="${COMPOSE_PROJECT_NAME}_default" R16A_TEST_TRAEFIK_PORT= \
+            docker compose -p "$COMPOSE_PROJECT_NAME-traefik" -f deploy/compose/test/traefik/docker-compose.yml up -d
+          traefik=$(docker compose -p "$COMPOSE_PROJECT_NAME-traefik" -f deploy/compose/test/traefik/docker-compose.yml port traefik 80 | cut -d: -f2)
+          {
+            echo "DATABASE_URL=postgres://postgres:postgres@127.0.0.1:$db/postgres"
+            echo "R16A_MIGRATE_DATABASE_URL=postgres://r16a_stream_owner:dev-only-owner-password@127.0.0.1:$db/r16a_stream"
+            echo "R16A_TEST_APP_DATABASE_URL=postgres://r16a_stream_app:dev-only-app-password@127.0.0.1:$db/r16a_stream"
+            echo "R16A_TEST_WORKER_DATABASE_URL=postgres://r16a_stream_worker:dev-only-worker-password@127.0.0.1:$db/r16a_stream"
+            echo "R16A_TEST_S3_ENDPOINT=http://127.0.0.1:$s3"
+            echo "R16A_TEST_GARAGE_ADMIN=http://127.0.0.1:$admin"
+            echo "R16A_TEST_TRAEFIK_URL=http://localhost:$traefik"
+          } >> "$GITHUB_ENV"
+
+      - name: Migrate with the owner role
+        working-directory: backend
+        run: R16A_ENV=test cargo run --locked -q --bin api -- migrate
+
+      - name: Tests (unit, integration, roles, Garage 1.0.1, Traefik 3.6.7, OpenAPI drift)
+        working-directory: backend
+        run: cargo test --locked --no-fail-fast
+
+      - name: sqlx offline data is current
+        working-directory: backend
+        env:
+          SQLX_OFFLINE: "false"
+        run: |
+          cargo install sqlx-cli --version 0.9.0 --locked --no-default-features --features postgres,rustls
+          DATABASE_URL="$R16A_MIGRATE_DATABASE_URL" cargo sqlx prepare --check -- --all-targets
+
+      - name: Stop infrastructure
+        if: always()
+        run: |
+          docker compose -p "$COMPOSE_PROJECT_NAME-traefik" -f deploy/compose/test/traefik/docker-compose.yml down -v || true
+          docker compose -f deploy/compose/docker-compose.dev.yml down -v || true
+
+  test-web:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Repository tooling, tokens, contrast, comment style
+        run: |
+          npm run test:scripts
+          npm run tokens:check
+          npm run contrast:check
+          npm run check:comments
+
+      - name: Web lint, format, unit tests
+        working-directory: web
+        run: |
+          npm run lint
+          npm run format:check
+          npm test
+
+      - name: API types are current
+        working-directory: web
+        run: |
+          npm run gen:api
+          git diff --exit-code -- src/app/core/api/schema.d.ts
+
+      - name: Production build with budgets, bundle and i18n checks
+        working-directory: web
+        run: |
+          npm run build
+          npm run check:bundle
+          npm run check:i18n
+
+  # The production images in the prod-like compose stack, with zero CSP violations in a real
+  # browser. Playwright runs in its own image because Chromium needs system libraries the
+  # runner does not have. The image tag matches @playwright/test in web/package.json.
+  test-e2e:
+    runs-on: self-hosted
+    env:
+      COMPOSE_PROJECT_NAME: r16a-e2e-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Prod-like stack with throwaway secrets
+        working-directory: deploy/compose
+        env:
+          OIDC_ISSUER: ${{ vars.R16A_DEV_OIDC_ISSUER }}
+          OIDC_MOBILE_ISSUER: ${{ vars.R16A_DEV_OIDC_MOBILE_ISSUER }}
+          OIDC_SECRET: ${{ secrets.R16A_DEV_OIDC_CLIENT_SECRET }}
+        run: |
+          gen() { openssl rand -hex "$1"; }
+          {
+            echo "POSTGRES_PASSWORD=$(gen 24)"
+            echo "R16A_OWNER_PASSWORD=$(gen 24)"
+            echo "R16A_APP_PASSWORD=$(gen 24)"
+            echo "R16A_WORKER_PASSWORD=$(gen 24)"
+            echo "GARAGE_RPC_SECRET=$(gen 32)"
+            echo "GARAGE_ADMIN_TOKEN=$(gen 24)"
+            echo "GARAGE_METRICS_TOKEN=$(gen 24)"
+            echo "R16A_S3_ACCESS_KEY_ID=GK$(gen 12)"
+            echo "R16A_S3_SECRET_ACCESS_KEY=$(gen 32)"
+            echo "R16A_WORKER_S3_ACCESS_KEY_ID=GK$(gen 12)"
+            echo "R16A_WORKER_S3_SECRET_ACCESS_KEY=$(gen 32)"
+            echo "R16A_HTTP_PORT="
+            echo "R16A_PUBLIC_URL=http://localhost:8080"
+            echo "R16A_SESSION_KEY=$(openssl rand -base64 32)"
+            # The dev provider (SPEC 6.7). Until the repository variables and the secret exist,
+            # the API starts against an unresolvable issuer, which is enough for the CSP check
+            # because discovery runs lazily. The login tests need the real values.
+            echo "R16A_OIDC_ISSUER=${OIDC_ISSUER:-https://authentik.invalid/application/o/r16a-stream-dev/}"
+            echo "R16A_OIDC_MOBILE_ISSUER=${OIDC_MOBILE_ISSUER:-https://authentik.invalid/application/o/r16a-stream-mobile-dev/}"
+            echo "R16A_OIDC_WEB_CLIENT_ID=r16a-stream-dev"
+            echo "R16A_OIDC_MOBILE_CLIENT_ID=r16a-stream-mobile-dev"
+            echo "R16A_OIDC_WEB_CLIENT_SECRET=${OIDC_SECRET:-$(gen 32)}"
+          } > .env
+          docker compose up -d --build --wait
+          echo "R16A_E2E_BASE_URL=http://127.0.0.1:$(docker compose port web 8080 | cut -d: -f2)" >> "$GITHUB_ENV"
+
+      - name: CSP and security headers in Chromium
+        run: |
+          docker run --rm --network host --ipc=host --user "$(id -u):$(id -g)" -e HOME=/tmp -e CI=1 \
+            -e R16A_E2E_BASE_URL -v "$GITHUB_WORKSPACE:/work" -w /work \
+            mcr.microsoft.com/playwright:v1.65.1-noble@sha256:1507cbfc550a63a6b7396791ca4f00df17beb56342d2447b3f106c306f525579 \
+            sh -c "npm ci --no-audit --no-fund && cd web && npx playwright test e2e/csp.spec.ts"
+
+      - name: Stop the stack
+        if: always()
+        working-directory: deploy/compose
+        run: docker compose down -v || true
+
+  security:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Rust advisories, licences, bans, sources (cargo deny)
+        uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
+        with:
+          manifest-path: backend/Cargo.toml
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: npm audit
+        # The root lockfile covers web and the shared packages.
+        run: npm audit --audit-level=high
+
+      - name: OWASP Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@75ba02d6183445fe0761d26e836bde58b1560600 # 1.1.0
+        with:
+          project: "r16a-stream"
+          path: "."
+          format: "HTML"
+          args: >
+            --failOnCVSS 7
+            --enableRetired
+            --exclude "**/mobile/**"
+            --exclude "**/node_modules/**"
+            --exclude "**/target/**"
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
+      - name: Upload OWASP report
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: owasp-report
+          path: reports/
+
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          scanners: "vuln,secret,misconfig"
+          skip-dirs: "mobile,backend/target,node_modules"
+          severity: "CRITICAL,HIGH"
+          ignore-unfixed: true
+          exit-code: "1"
+          format: "table"

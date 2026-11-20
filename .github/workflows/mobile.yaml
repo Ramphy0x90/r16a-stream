@@ -1,0 +1,58 @@
+name: Mobile checks
+
+# The mobile app is not deployed, so deploy.yaml ignores it. This workflow checks it whenever
+# the app, its generated inputs or this file change on main. There is no pull_request trigger,
+# as in deploy.yaml, because the self-hosted runner must never run code from a fork.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - "packages/design-tokens/**"
+      - "docs/openapi.json"
+      - ".github/workflows/mobile.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Two runs installing the same SDK into the shared FVM cache on the runner would race.
+concurrency:
+  group: mobile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-mobile:
+    runs-on: self-hosted
+    env:
+      # FVM itself is pinned here and verified by digest. The Flutter version comes only from
+      # mobile/.fvmrc, so developers and CI cannot drift apart. Dependabot does not track FVM,
+      # bump both values by hand (DECISIONS 068).
+      FVM_VERSION: "4.3.2"
+      FVM_SHA256: "17dfced05f5b0cb32398dadd0691acc2bc458e8c4b0045a781cd5aa6c85f6ecb"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install FVM
+        run: |
+          dir="$RUNNER_TEMP/fvm-$FVM_VERSION"
+          mkdir -p "$dir"
+          curl -fsSL -o "$dir/fvm.tar.gz" \
+            "https://github.com/btwld/fvm/releases/download/$FVM_VERSION/fvm-$FVM_VERSION-linux-x64.tar.gz"
+          echo "$FVM_SHA256  $dir/fvm.tar.gz" | sha256sum -c -
+          tar xzf "$dir/fvm.tar.gz" -C "$dir" --strip-components=1
+          echo "$dir" >> "$GITHUB_PATH"
+
+      - name: Install the Flutter version from .fvmrc
+        working-directory: mobile
+        run: |
+          fvm install
+          fvm flutter --version
+
+      - name: Dependencies, format, analyze, tests
+        working-directory: mobile
+        run: |
+          fvm flutter pub get --enforce-lockfile
+          fvm dart format --output=none --set-exit-if-changed lib test
+          fvm flutter analyze
+          fvm flutter test

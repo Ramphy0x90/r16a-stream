@@ -1,0 +1,64 @@
+# Editors. A shared extension recommendation list may be committed.
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Local configuration and secrets. Only the templates are tracked.
+.env
+.env.*
+!.env.example
+deploy/k8s/secret.yaml
+
+# Rust
+backend/target/
+
+# Worker scratch space in manual mode
+**/.scratch/
+
+# Node. The npm workspace installs at the repository root, so node_modules can appear at
+# any level.
+node_modules/
+
+# Web
+web/dist/
+web/.angular/
+web/coverage/
+
+# Mobile
+mobile/build/
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.pub-cache/
+mobile/.pub/
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/android/app/debug/
+mobile/android/app/profile/
+mobile/android/app/release/
+mobile/android/captures/
+mobile/android/key.properties
+mobile/android/**/*.jks
+mobile/android/**/*.keystore
+mobile/ios/Pods/
+mobile/ios/.symlinks/
+mobile/ios/Flutter/Generated.xcconfig
+mobile/ios/Flutter/flutter_export_environment.sh
+mobile/ios/Flutter/ephemeral/
+mobile/ios/Runner/GeneratedPluginRegistrant.*
+mobile/ios/**/xcuserdata/
+mobile/**/*.iml
+
+# Playwright
+playwright-report/
+test-results/
+blob-report/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Kept tracked on purpose: backend/.sqlx/, docs/openapi.json, mobile/lib/core/api/generated/
+
+# FVM project link to the SDK in ~/fvm, recreated by `fvm install`
+mobile/.fvm/

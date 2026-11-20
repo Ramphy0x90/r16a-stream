@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "insert into sessions (id, user_id, token_hash, is_admin, refresh_token_enc, key_id, idle_expires_at,\n                               absolute_expires_at, user_agent)\n         values ($1, $2, $3, $4, $5, $6, now() + make_interval(secs => $7), now() + make_interval(secs => $8), $9)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bytea",
+        "Bool",
+        "Bytea",
+        "Int2",
+        "Float8",
+        "Float8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f3fa1ab2ce124c35207c3eff9166243b45baf62de06d35e8740baeb80a4ff679"
+}

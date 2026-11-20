@@ -1,0 +1,43 @@
+{
+  "@@locale": "en",
+  "appName": "r16a-stream",
+  "@appName": {
+    "description": "Working name of the app, shown in the title bar."
+  },
+  "homeHeading": "Welcome",
+  "@homeHeading": {
+    "description": "Heading of the home screen."
+  },
+  "homeComingSoon": "Your library will appear here.",
+  "@homeComingSoon": {
+    "description": "Placeholder text on the home screen until the catalog exists."
+  },
+  "signInHeading": "Sign in to r16a-stream",
+  "@signInHeading": {
+    "description": "Heading of the sign-in screen."
+  },
+  "signInLead": "You sign in with your r16a account in the browser and come back here afterwards.",
+  "@signInLead": {
+    "description": "Explains that sign-in happens in the browser."
+  },
+  "signInButton": "Sign in",
+  "@signInButton": {
+    "description": "Button that opens the sign-in page."
+  },
+  "signInFailed": "Signing in did not work. Please try again.",
+  "@signInFailed": {
+    "description": "Shown when the sign-in flow failed."
+  },
+  "signInDenied": "Your account does not have access to r16a-stream. Ask an administrator to add you.",
+  "@signInDenied": {
+    "description": "Shown when the account is not in the r16a-stream group."
+  },
+  "signInUnavailable": "The server cannot be reached right now. Please try again later.",
+  "@signInUnavailable": {
+    "description": "Shown when the server cannot be reached."
+  },
+  "signOut": "Sign out",
+  "@signOut": {
+    "description": "Action that signs the user out."
+  }
+}

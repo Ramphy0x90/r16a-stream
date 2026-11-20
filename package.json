@@ -1,0 +1,30 @@
+{
+  "name": "r16a-stream",
+  "private": true,
+  "description": "npm workspace root. Holds no code, it only makes web and the shared packages share one dependency tree and one lockfile.",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "web"
+  ],
+  "scripts": {
+    "tokens:build": "node shared/scripts/tokens-build.ts",
+    "tokens:check": "node shared/scripts/tokens-build.ts --check",
+    "contrast": "node shared/scripts/contrast-check.ts",
+    "contrast:check": "node shared/scripts/contrast-check.ts --check",
+    "check:comments": "node shared/scripts/check-comment-style.mjs",
+    "test:scripts": "node --test shared/scripts/"
+  },
+  "packageManager": "npm@11.20.0",
+  "engines": {
+    "node": ">=26.13.1"
+  },
+  "overrides": {
+    "openapi-typescript": {
+      "typescript": "$typescript"
+    }
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
+  }
+}

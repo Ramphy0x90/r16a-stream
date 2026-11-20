@@ -1,0 +1,66 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select s.id, s.user_id, s.is_admin,\n                extract(epoch from now() - s.claims_refreshed_at)::float8 as \"claims_age_secs!\",\n                (s.last_seen_at < now() - interval '1 minute') as \"needs_touch!\"\n         from sessions s join users u on u.id = s.user_id\n         where s.token_hash = $1 and s.idle_expires_at > now() and s.absolute_expires_at > now()\n           and u.disabled_at is null",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "sessions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "sessions",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "is_admin",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "sessions",
+            "name": "is_admin"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "claims_age_secs!",
+        "type_info": "Float8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "needs_touch!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "ea9a0489d7cd03fe3bfa8b58b4b7ce4096c63e20a38580d6d713dd40f31ea40b"
+}

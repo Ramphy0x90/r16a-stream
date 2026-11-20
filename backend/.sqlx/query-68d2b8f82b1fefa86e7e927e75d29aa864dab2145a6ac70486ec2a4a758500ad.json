@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update users set is_admin = $2, last_seen_at = now() where id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "68d2b8f82b1fefa86e7e927e75d29aa864dab2145a6ac70486ec2a4a758500ad"
+}

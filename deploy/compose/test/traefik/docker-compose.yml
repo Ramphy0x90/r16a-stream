@@ -1,0 +1,26 @@
+# Traefik test harness, pinned to the cluster baseline. Joins the dev compose network so it
+# reaches the dev Garage. Start the dev stack first, then
+#   docker compose -f deploy/compose/test/traefik/docker-compose.yml up -d
+# The test backend/tests/traefik_presign.rs runs against http://localhost:8097.
+name: r16a-stream-traefik-test
+
+services:
+  traefik:
+    image: traefik:v3.6.7@sha256:a9890c898f379c1905ee5b28342f6b408dc863f08db2dab20e46c267d1ff463a
+    command: ["--configFile=/etc/traefik/traefik.yml"]
+    ports:
+      - "127.0.0.1:${R16A_TEST_TRAEFIK_PORT-8097}:80"
+    volumes:
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./dynamic.yml:/etc/traefik/dynamic.yml:ro
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+
+  echo:
+    image: traefik/whoami:v1.12.0@sha256:c4717a8d1f0134a7444e24f881160e033991f23027c6c5a9a3f8fd22e70d1d44
+
+networks:
+  default:
+    name: ${R16A_DEV_NETWORK:-r16a-stream-dev_default}
+    external: true

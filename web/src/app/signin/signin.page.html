@@ -1,0 +1,10 @@
+<section class="signin" aria-labelledby="signin-heading">
+  <h1 id="signin-heading">{{ 'signin.heading' | transloco }}</h1>
+  <p>{{ 'signin.lead' | transloco }}</p>
+  @if (message(); as m) {
+    <p class="message" role="alert">{{ 'signin.error.' + m | transloco }}</p>
+  }
+  <button type="button" class="primary" (click)="signIn()">
+    {{ 'signin.button' | transloco }}
+  </button>
+</section>

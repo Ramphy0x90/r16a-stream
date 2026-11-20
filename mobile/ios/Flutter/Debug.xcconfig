@@ -1,0 +1,3 @@
+#include "Generated.xcconfig"
+// Redirect scheme of the dev Authentik provider, see android/app/build.gradle.kts.
+R16A_OIDC_SCHEME=cloud.r16a.stream.dev

@@ -1,0 +1,201 @@
+# Prod-like stack, every service from the real Dockerfiles, served on
+# http://localhost:${R16A_HTTP_PORT}. Fill .env from .env.example first.
+#
+# It runs in development mode only because it is plain HTTP on localhost, where the __Host-
+# cookie and HSTS cannot work. Everything else matches production, including the hardening,
+# the three database roles, the scoped Garage keys and the worker without internet access.
+name: r16a-stream-local
+
+x-logging: &logging
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+
+x-hardening: &hardening
+  <<: *logging
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+
+x-app-env: &app-env
+  R16A_ENV: development
+  R16A_LOG_FORMAT: json
+  RUST_LOG: info,sqlx=warn
+  R16A_PUBLIC_URL: ${R16A_PUBLIC_URL:?set R16A_PUBLIC_URL in .env}
+  R16A_DEV_INSECURE_COOKIE: "true"
+  R16A_S3_INTERNAL_ENDPOINTS: http://garage:3900
+  R16A_S3_PUBLIC_ENDPOINT: ${R16A_PUBLIC_URL}
+  R16A_S3_REGION: garage
+  R16A_S3_MEDIA_BUCKET: r16a-stream-media
+  R16A_S3_UPLOADS_BUCKET: r16a-stream-uploads
+
+services:
+  db:
+    <<: *logging
+    image: postgres:15.20@sha256:2663a9f0fde52de94f5dad3603a1942359f49472f1017c1a6d64f66bfedacb40
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      R16A_OWNER_PASSWORD: ${R16A_OWNER_PASSWORD:?set R16A_OWNER_PASSWORD in .env}
+      R16A_APP_PASSWORD: ${R16A_APP_PASSWORD:?set R16A_APP_PASSWORD in .env}
+      R16A_WORKER_PASSWORD: ${R16A_WORKER_PASSWORD:?set R16A_WORKER_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-roles.sh:/docker-entrypoint-initdb.d/10-init-roles.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d r16a_stream"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    networks: [db]
+    restart: unless-stopped
+
+  garage:
+    <<: *logging
+    image: dxflrs/garage:v1.0.1@sha256:a5706cf1f3d7b349ac5133ec59ad8181b709270b75e5f2fa7b3e1a5c07d67137
+    command: ["/garage", "-c", "/etc/garage.toml", "server"]
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:?set GARAGE_RPC_SECRET in .env}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN:?set GARAGE_ADMIN_TOKEN in .env}
+      GARAGE_METRICS_TOKEN: ${GARAGE_METRICS_TOKEN:?set GARAGE_METRICS_TOKEN in .env}
+    volumes:
+      - ./garage/garage.prod-like.toml:/etc/garage.toml:ro
+      - garage-meta:/var/lib/garage/meta
+      - garage-data:/var/lib/garage/data
+    networks: [storage]
+    restart: unless-stopped
+
+  garage-init:
+    <<: *logging
+    image: curlimages/curl:8.23.0@sha256:3fb7e13e5d179a845c97d78204f3f1064d1907037f26a3ebf91710571151fd93
+    entrypoint: ["/bin/sh", "/init.sh"]
+    environment:
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN}
+      API_KEY_ID: ${R16A_S3_ACCESS_KEY_ID:?set R16A_S3_ACCESS_KEY_ID in .env}
+      API_SECRET: ${R16A_S3_SECRET_ACCESS_KEY:?set R16A_S3_SECRET_ACCESS_KEY in .env}
+      WORKER_KEY_ID: ${R16A_WORKER_S3_ACCESS_KEY_ID:?set R16A_WORKER_S3_ACCESS_KEY_ID in .env}
+      WORKER_SECRET: ${R16A_WORKER_S3_SECRET_ACCESS_KEY:?set R16A_WORKER_S3_SECRET_ACCESS_KEY in .env}
+    volumes:
+      - ./garage/init.sh:/init.sh:ro
+    depends_on: [garage]
+    networks: [storage]
+    restart: "no"
+
+  migrate:
+    <<: *hardening
+    build:
+      context: ../../backend
+      target: api
+    image: r16a-stream-backend:local
+    command: ["migrate"]
+    environment:
+      R16A_ENV: development
+      R16A_MIGRATE_DATABASE_URL: postgres://r16a_stream_owner:${R16A_OWNER_PASSWORD}@db:5432/r16a_stream
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [db]
+    restart: "no"
+
+  backend:
+    <<: *hardening
+    image: r16a-stream-backend:local
+    environment:
+      <<: *app-env
+      R16A_HTTP_BIND: 0.0.0.0:8081
+      R16A_DATABASE_URL: postgres://r16a_stream_app:${R16A_APP_PASSWORD}@db:5432/r16a_stream
+      R16A_S3_ACCESS_KEY_ID: ${R16A_S3_ACCESS_KEY_ID}
+      R16A_S3_SECRET_ACCESS_KEY: ${R16A_S3_SECRET_ACCESS_KEY}
+      R16A_GARAGE_METRICS_ENDPOINTS: http://garage:3903
+      R16A_GARAGE_METRICS_TOKEN: ${GARAGE_METRICS_TOKEN}
+      R16A_OIDC_ISSUER: ${R16A_OIDC_ISSUER:?set R16A_OIDC_ISSUER in .env}
+      R16A_OIDC_WEB_CLIENT_ID: ${R16A_OIDC_WEB_CLIENT_ID:?set R16A_OIDC_WEB_CLIENT_ID in .env}
+      R16A_OIDC_WEB_CLIENT_SECRET: ${R16A_OIDC_WEB_CLIENT_SECRET:?set R16A_OIDC_WEB_CLIENT_SECRET in .env}
+      R16A_OIDC_MOBILE_ISSUER: ${R16A_OIDC_MOBILE_ISSUER:?set R16A_OIDC_MOBILE_ISSUER in .env}
+      R16A_OIDC_MOBILE_CLIENT_ID: ${R16A_OIDC_MOBILE_CLIENT_ID:?set R16A_OIDC_MOBILE_CLIENT_ID in .env}
+      R16A_SESSION_KEY: ${R16A_SESSION_KEY:?set R16A_SESSION_KEY in .env}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      garage-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "/api", "healthcheck"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    # db and storage are internal networks. app gives the API its way out to Authentik, and to
+    # TMDB in later phases.
+    networks: [db, storage, app]
+    restart: unless-stopped
+
+  worker:
+    <<: *hardening
+    build:
+      context: ../../backend
+      target: worker
+    image: r16a-stream-worker:local
+    environment:
+      <<: *app-env
+      R16A_WORKER_DATABASE_URL: postgres://r16a_stream_worker:${R16A_WORKER_PASSWORD}@db:5432/r16a_stream
+      R16A_WORKER_S3_ACCESS_KEY_ID: ${R16A_WORKER_S3_ACCESS_KEY_ID}
+      R16A_WORKER_S3_SECRET_ACCESS_KEY: ${R16A_WORKER_S3_SECRET_ACCESS_KEY}
+    tmpfs:
+      - /tmp
+    volumes:
+      - worker-scratch:/scratch
+    depends_on:
+      db:
+        condition: service_healthy
+      garage-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "/worker", "healthcheck"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    # Only internal networks, so ffmpeg runs without internet access, like the NetworkPolicy
+    # in Kubernetes (SPEC 19.4).
+    networks: [db, storage]
+    restart: unless-stopped
+
+  web:
+    <<: *hardening
+    build:
+      context: ../..
+      dockerfile: web/Dockerfile
+    image: r16a-stream-web:local
+    environment:
+      R16A_WEB_LISTEN: "8080"
+      R16A_BACKEND_UPSTREAM: backend:8081
+      R16A_GARAGE_UPSTREAM: garage:3900
+    tmpfs:
+      - /tmp
+      - /etc/nginx/conf.d:uid=101,gid=101
+    ports:
+      - "127.0.0.1:${R16A_HTTP_PORT-8080}:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [app, storage]
+    restart: unless-stopped
+
+networks:
+  db:
+    internal: true
+  storage:
+    internal: true
+  app: {}
+
+volumes:
+  pgdata: {}
+  garage-meta: {}
+  garage-data: {}
+  worker-scratch: {}
