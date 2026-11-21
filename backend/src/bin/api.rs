@@ -185,15 +185,30 @@ async fn serve() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    let Some((tmdb, tmdb_images, image_urls)) = outbound_clients(&config) else {
+    let Some((tmdb, tmdb_images, image_urls, upload_urls)) = outbound_clients(&config) else {
         return ExitCode::FAILURE;
     };
     let limits = Arc::new(r16a_stream_backend::http::rate_limit::FeatureLimits::default());
     spawn_auth_tasks(auth.clone(), limits.clone(), pool.clone());
+    // Garage metrics live on the cluster network. No redirects, so a misconfigured endpoint
+    // cannot send the metrics token elsewhere.
+    let metrics_http = match reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .timeout(Duration::from_secs(5))
+        .build()
+    {
+        Ok(c) => c,
+        Err(e) => {
+            tracing::error!(error = %e, "metrics client setup failed");
+            return ExitCode::FAILURE;
+        }
+    };
+    let config = Arc::new(config);
+    r16a_stream_backend::media::tasks::spawn(pool.clone(), storage.clone(), config.clone(), metrics_http);
 
     let bind = config.http_bind;
     let state = AppState {
-        config: Arc::new(config),
+        config,
         db: pool,
         storage,
         write_health,
@@ -202,6 +217,7 @@ async fn serve() -> ExitCode {
         tmdb,
         tmdb_images,
         image_urls,
+        upload_urls,
     };
     let listener = match tokio::net::TcpListener::bind(bind).await {
         Ok(l) => l,
@@ -265,6 +281,7 @@ type Clients = (
     Arc<r16a_stream_backend::tmdb::client::TmdbClient>,
     Arc<r16a_stream_backend::images::ingest::TmdbImages>,
     Arc<r16a_stream_backend::images::urls::ImageUrls>,
+    Arc<r16a_stream_backend::storage::public::UploadUrls>,
 );
 
 /// The TMDB API and image clients and the image URL signer. Logs and returns `None` on failure.
@@ -291,5 +308,11 @@ fn outbound_clients(config: &ApiConfig) -> Option<Clients> {
         tracing::error!("R16A_S3_PUBLIC_ENDPOINT cannot sign image URLs");
         return None;
     };
-    Some((tmdb, tmdb_images, image_urls))
+    let Some(upload_urls) =
+        r16a_stream_backend::storage::public::UploadUrls::new(&config.s3_public_endpoint, &config.s3).map(Arc::new)
+    else {
+        tracing::error!("R16A_S3_PUBLIC_ENDPOINT cannot sign upload URLs");
+        return None;
+    };
+    Some((tmdb, tmdb_images, image_urls, upload_urls))
 }

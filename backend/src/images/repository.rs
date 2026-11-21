@@ -14,6 +14,19 @@ pub async fn insert_with_job(
     source_key: &str,
     source_bytes: i64,
 ) -> Result<(), sqlx::Error> {
+    insert_pending(db, id, kind, source_key, Some(source_bytes)).await?;
+    enqueue(db, id).await?;
+    Ok(())
+}
+
+/// An image row without a job, for a manual upload that has not completed yet.
+pub async fn insert_pending(
+    db: &mut PgConnection,
+    id: Uuid,
+    kind: &str,
+    source_key: &str,
+    source_bytes: Option<i64>,
+) -> Result<(), sqlx::Error> {
     sqlx::query!(
         "insert into images (id, kind, source_key, source_bytes) values ($1, $2, $3, $4)",
         id,
@@ -21,17 +34,30 @@ pub async fn insert_with_job(
         source_key,
         source_bytes
     )
-    .execute(&mut *db)
+    .execute(db)
     .await?;
-    sqlx::query!(
+    Ok(())
+}
+
+/// Queues the image job and returns its id.
+pub async fn enqueue(db: &mut PgConnection, id: Uuid) -> Result<Uuid, sqlx::Error> {
+    let job = sqlx::query_scalar!(
         "insert into jobs (kind, payload, image_id, dedupe_key, priority)
-         values ('image', jsonb_build_object('imageId', $1::uuid), $1, 'image:' || $1::text, 10)",
+         values ('image', jsonb_build_object('imageId', $1::uuid), $1, 'image:' || $1::text, 10)
+         returning id",
         id
     )
-    .execute(&mut *db)
+    .fetch_one(&mut *db)
     .await?;
     // Delivered at commit, wakes an idle worker at once instead of at its next poll.
     sqlx::query!("select pg_notify('r16a_stream_jobs', 'image')")
+        .execute(db)
+        .await?;
+    Ok(job)
+}
+
+pub async fn set_source_bytes(db: &mut PgConnection, id: Uuid, bytes: i64) -> Result<(), sqlx::Error> {
+    sqlx::query!("update images set source_bytes = $2 where id = $1", id, bytes)
         .execute(db)
         .await?;
     Ok(())

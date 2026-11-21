@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update titles set listed_at = now() where id = $1 and status = 'published'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "444c1064ac88eb980ab38cfee02481063c6bd5de8a1efeb208c7ecf1afa0023f"
+}

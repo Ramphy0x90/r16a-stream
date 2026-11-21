@@ -39,7 +39,8 @@
       "type": "Tipo",
       "genre": "Género",
       "sort": "Orden",
-      "all": "Todos"
+      "all": "Todos",
+      "language": "Idioma"
     },
     "sort": {
       "recent": "Añadidos recientemente",
@@ -123,6 +124,109 @@
       "note": "Las imágenes se descargan al guardar y aparecen cuando se han procesado.",
       "removePoster": "Quitar póster",
       "removeBackdrop": "Quitar fondo"
+    },
+    "media": {
+      "heading": "Idiomas y medios",
+      "language": "Idioma",
+      "episode": "Episodio",
+      "addLanguage": "Añadir idioma",
+      "size": "Tamaño",
+      "actions": "Acciones",
+      "encode": "Codificación",
+      "source": "Original",
+      "resume": "Reanudar subida",
+      "pause": "Pausar",
+      "abort": "Cancelar subida",
+      "retranscode": "Transcodificar de nuevo",
+      "sourceGone": "El original se borró tras transcodificar. Sube el archivo de nuevo para volver a codificar.",
+      "addSubtitle": "Añadir subtítulos",
+      "subtitleLanguage": "Idioma de los subtítulos",
+      "subtitleKind": "Tipo de subtítulos",
+      "kind": {
+        "subtitles": "Subtítulos",
+        "captions": "Para sordos",
+        "forced": "Forzados"
+      },
+      "none": "Aún no hay idiomas. Añade uno y luego sube su vídeo.",
+      "images": "Imágenes",
+      "uploadPoster": "Subir póster",
+      "uploadBackdrop": "Subir fondo",
+      "uploadStill": "Subir fotograma",
+      "imageUploading": "Subiendo la imagen…",
+      "imageQueued": "La imagen se ha subido y aparecerá cuando se procese.",
+      "resumeMismatch": "Este no es el archivo de la subida interrumpida. Elige el mismo archivo o cancela la subida.",
+      "noSpace": "No hay espacio suficiente. Esta subida necesita {{needed}} y quedan {{available}} libres.",
+      "busy": "Ya hay una subida o una transcodificación en curso para este idioma.",
+      "uploadFailed": "La subida falló. Elige el archivo de nuevo para reanudarla.",
+      "state": {
+        "awaiting_upload": "Esperando vídeo",
+        "processing": "Procesando",
+        "ready": "Listo",
+        "failed": "Error"
+      },
+      "upload": {
+        "pick": "Subir vídeo",
+        "starting": "Iniciando…",
+        "uploading": "Subiendo",
+        "paused": "En pausa, el almacenamiento está degradado",
+        "completing": "Terminando…",
+        "done": "Subido, transcodificación en cola",
+        "failed": "La subida falló",
+        "refused": "Subida rechazada",
+        "cancelled": "En pausa, elige el archivo de nuevo para reanudar"
+      }
+    },
+    "jobs": {
+      "heading": "Tareas",
+      "all": "Todas",
+      "kind": "Tipo",
+      "created": "Creada",
+      "detail": "Detalles",
+      "retry": "Reintentar",
+      "cancel": "Cancelar",
+      "none": "No hay tareas.",
+      "attempts": "Intento {{n}} de {{max}}, {{waits}} esperas de almacenamiento",
+      "status": {
+        "queued": "En cola",
+        "running": "En curso",
+        "cancelling": "Cancelando",
+        "succeeded": "Hecha",
+        "failed": "Error",
+        "cancelled": "Cancelada"
+      },
+      "kinds": {
+        "transcode": "Transcodificación",
+        "image": "Imagen",
+        "subtitle": "Subtítulos",
+        "encode_gc": "Limpieza de almacenamiento"
+      },
+      "blocked": {
+        "storage_degraded": "Esperando a que el almacenamiento acepte escrituras",
+        "storage_full": "Esperando espacio libre",
+        "scratch_full": "Esperando espacio en el disco del worker"
+      }
+    },
+    "storage": {
+      "heading": "Almacenamiento",
+      "free": "{{free}} libres, {{reserved}} reservados para subidas en curso",
+      "reserved": "{{reserved}} reservados para subidas en curso",
+      "unknown": {
+        "not_configured": "Espacio libre desconocido, las métricas de Garage no están configuradas.",
+        "stale": "Espacio libre desconocido, las métricas de Garage están desactualizadas."
+      },
+      "node": "Nodo",
+      "data": "Datos libres / total",
+      "metadata": "Metadatos libres / total",
+      "stale": "(desactualizado)",
+      "components": "Estado de escritura",
+      "writable": "Las escrituras funcionan",
+      "notWritable": "Las escrituras fallan",
+      "titles": "Títulos más grandes"
+    },
+    "banner": {
+      "degraded": "El almacenamiento está degradado. Las subidas y transcodificaciones están en pausa, la reproducción sigue funcionando.",
+      "full": "El almacenamiento está casi lleno.",
+      "unknown": "La capacidad de almacenamiento es desconocida hasta configurar las métricas de Garage."
     }
   }
 }

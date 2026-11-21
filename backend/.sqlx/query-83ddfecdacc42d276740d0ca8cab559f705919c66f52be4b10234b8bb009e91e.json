@@ -1,0 +1,186 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select id, purpose, variant_id, image_id, image_kind, image_title_id, image_episode_id, object_key,\n                      s3_upload_id, size_bytes, part_size, part_count, status,\n                      expires_at <= now() as \"expired!\", source_deleted_at is not null as \"source_deleted!\"\n               from uploads where id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "uploads",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "purpose",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "uploads",
+            "name": "purpose"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "variant_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "uploads",
+            "name": "variant_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "image_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "uploads",
+            "name": "image_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "image_kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "uploads",
+            "name": "image_kind"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "image_title_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "uploads",
+            "name": "image_title_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "image_episode_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "uploads",
+            "name": "image_episode_id"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "object_key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "uploads",
+            "name": "object_key"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "s3_upload_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "uploads",
+            "name": "s3_upload_id"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "size_bytes",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "uploads",
+            "name": "size_bytes"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "part_size",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "uploads",
+            "name": "part_size"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "part_count",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "uploads",
+            "name": "part_count"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "uploads",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "expired!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 14,
+        "name": "source_deleted!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "83ddfecdacc42d276740d0ca8cab559f705919c66f52be4b10234b8bb009e91e"
+}

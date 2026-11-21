@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update jobs set status = 'queued', locked_by = null, heartbeat_at = null, progress = null,\n                blocked_reason = $2, storage_waits = storage_waits + 1,\n                run_after = now() + make_interval(secs => $3)\n         where id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Float8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bfe12d382a541cf37c9f481059dc8130364a352ac88b3661a517d5d639b4b0ed"
+}

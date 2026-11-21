@@ -1,0 +1,95 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select node, data_avail, data_total, meta_avail, meta_total, replication,\n                  checked_at > now() - make_interval(secs => $1) as \"fresh!\"\n           from garage_capacity order by node",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "node",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "garage_capacity",
+            "name": "node"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "data_avail",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "garage_capacity",
+            "name": "data_avail"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "data_total",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "garage_capacity",
+            "name": "data_total"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "meta_avail",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "garage_capacity",
+            "name": "meta_avail"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "meta_total",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "garage_capacity",
+            "name": "meta_total"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "replication",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "garage_capacity",
+            "name": "replication"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "fresh!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Float8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "1b2a1723f3e94bdf19bb3499d15b61d81fb4ca9b58e23236a71db844e71b85ab"
+}

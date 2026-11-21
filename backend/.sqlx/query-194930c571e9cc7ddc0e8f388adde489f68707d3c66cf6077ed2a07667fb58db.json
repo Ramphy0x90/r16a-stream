@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "insert into jobs (kind, dedupe_key, run_after) values ('encode_gc', 'encode_gc', now() + make_interval(secs => $1))\n         on conflict (dedupe_key) where status in ('queued', 'running', 'cancelling') do nothing",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Float8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "194930c571e9cc7ddc0e8f388adde489f68707d3c66cf6077ed2a07667fb58db"
+}

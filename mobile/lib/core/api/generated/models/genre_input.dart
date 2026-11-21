@@ -11,11 +11,7 @@ class GenreInput {
     }
     return GenreInput(
       name: json["name"] as String,
-      tmdbId: json.containsKey("tmdbId")
-          ? json["tmdbId"] == null
-                ? null
-                : _readJsonInteger(json["tmdbId"])
-          : null,
+      tmdbId: json.containsKey("tmdbId") ? json["tmdbId"] as int? : null,
     );
   }
 
@@ -29,14 +25,4 @@ class GenreInput {
     "name": this.name,
     if (this.tmdbId != null) "tmdbId": this.tmdbId,
   };
-}
-
-int _readJsonInteger(Object? value) {
-  if (value is int) {
-    return value;
-  }
-  if (value is double && value.isFinite && value == value.toInt()) {
-    return value.toInt();
-  }
-  throw FormatException('Expected a JSON integer.', value);
 }

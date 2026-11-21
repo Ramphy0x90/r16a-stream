@@ -34,6 +34,9 @@ pub enum AppError {
     PayloadTooLarge,
     #[error("storage degraded")]
     StorageDegraded,
+    /// The upload does not fit (SPEC 7.10). Both numbers go to the admin, they are not secret.
+    #[error("insufficient storage")]
+    InsufficientStorage { needed: u64, available: u64 },
     #[error("unavailable")]
     Unavailable,
     #[error("internal error")]
@@ -60,6 +63,8 @@ pub struct Problem {
     pub slug: &'static str,
     pub title: &'static str,
     pub internal: Option<String>,
+    /// Extra members of the problem document, numbers only, never input or secrets.
+    pub extra: Option<(u64, u64)>,
 }
 
 impl AppError {
@@ -89,6 +94,11 @@ impl AppError {
                 "storage_degraded",
                 "Storage is degraded, uploads are paused.",
             ),
+            Self::InsufficientStorage { .. } => (
+                StatusCode::INSUFFICIENT_STORAGE,
+                "insufficient_storage",
+                "There is not enough storage space for this upload.",
+            ),
             Self::Unavailable => (
                 StatusCode::SERVICE_UNAVAILABLE,
                 "unavailable",
@@ -106,6 +116,10 @@ impl AppError {
             title,
             internal: match self {
                 Self::Internal(cause) => Some(cause.clone()),
+                _ => None,
+            },
+            extra: match self {
+                Self::InsufficientStorage { needed, available } => Some((*needed, *available)),
                 _ => None,
             },
         }
@@ -133,6 +147,10 @@ struct ProblemBody<'a> {
     title: &'a str,
     status: u16,
     request_id: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    needed_bytes: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    available_bytes: Option<u64>,
 }
 
 /// Renders problem bodies and turns bare framework error statuses into problems too, so every
@@ -170,6 +188,8 @@ pub async fn problem_layer(req: Request, next: Next) -> Response {
         title: problem.title,
         status: problem.status.as_u16(),
         request_id: &request_id,
+        needed_bytes: problem.extra.map(|e| e.0),
+        available_bytes: problem.extra.map(|e| e.1),
     };
     let mut out = (problem.status, axum::Json(body)).into_response();
     out.headers_mut().insert(
@@ -200,5 +220,6 @@ fn fallback_problem(status: StatusCode) -> Problem {
         slug,
         title,
         internal: None,
+        extra: None,
     }
 }

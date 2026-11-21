@@ -50,4 +50,9 @@ export class CatalogService {
   genres(): Observable<Genre[]> {
     return this.http.get<Genre[]>('/api/v1/genres');
   }
+
+  /** Content languages at least one published title can be watched in, as BCP 47 tags. */
+  languages(): Observable<string[]> {
+    return this.http.get<string[]>('/api/v1/languages');
+  }
 }

@@ -10,19 +10,11 @@ class SeasonPatch {
     }
     return SeasonPatch(
       name: json.containsKey("name") ? json["name"] as String? : null,
-      number: json.containsKey("number")
-          ? json["number"] == null
-                ? null
-                : _readJsonInteger(json["number"])
-          : null,
+      number: json.containsKey("number") ? json["number"] as int? : null,
       overview: json.containsKey("overview")
           ? json["overview"] as String?
           : null,
-      year: json.containsKey("year")
-          ? json["year"] == null
-                ? null
-                : _readJsonInteger(json["year"])
-          : null,
+      year: json.containsKey("year") ? json["year"] as int? : null,
     );
   }
 
@@ -42,14 +34,4 @@ class SeasonPatch {
     if (this.overview != null) "overview": this.overview,
     if (this.year != null) "year": this.year,
   };
-}
-
-int _readJsonInteger(Object? value) {
-  if (value is int) {
-    return value;
-  }
-  if (value is double && value.isFinite && value == value.toInt()) {
-    return value.toInt();
-  }
-  throw FormatException('Expected a JSON integer.', value);
 }

@@ -1,0 +1,217 @@
+<section class="panel" [attr.aria-label]="'admin.media.heading' | transloco">
+  <h2>{{ 'admin.media.heading' | transloco }}</h2>
+  @if (error(); as key) {
+    <p class="error-text" role="alert">{{ key | transloco }}</p>
+  }
+
+  <div class="inline">
+    <label class="field">
+      <span>{{ 'admin.media.language' | transloco }}</span>
+      <input
+        type="text"
+        maxlength="35"
+        placeholder="it, pt-BR"
+        [value]="newLanguage()"
+        (input)="newLanguage.set(value($event))"
+      />
+    </label>
+    @if (title().kind === 'show') {
+      <label class="field">
+        <span>{{ 'admin.media.episode' | transloco }}</span>
+        <select (change)="newEpisode.set(value($event))">
+          @for (e of episodes(); track e.id) {
+            <option [value]="e.id" [selected]="e.id === newEpisode()">{{ e.label }}</option>
+          }
+        </select>
+      </label>
+    }
+    <button class="btn btn-primary" type="button" [disabled]="busy()" (click)="addVariant()">
+      {{ 'admin.media.addLanguage' | transloco }}
+    </button>
+  </div>
+
+  @for (g of groups(); track g.episodeId) {
+    @if (g.label) {
+      <h3>{{ g.label }}</h3>
+    }
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">{{ 'admin.media.language' | transloco }}</th>
+          <th scope="col">{{ 'admin.status.label' | transloco }}</th>
+          <th scope="col">{{ 'admin.media.size' | transloco }}</th>
+          <th scope="col">{{ 'admin.media.actions' | transloco }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (v of g.variants; track v.id) {
+          <tr>
+            <td>{{ v.language }}</td>
+            <td>
+              {{ 'admin.media.state.' + v.status | transloco }}
+              @if (v.job; as j) {
+                <div class="muted">
+                  {{ 'admin.jobs.status.' + j.status | transloco }}
+                  @if (j.status === 'running') {
+                    <progress max="100" [value]="percent(j.progress)"></progress>
+                    {{ percent(j.progress) }} %
+                  }
+                  @if (j.status === 'failed' && j.failureDetail) {
+                    <span class="error-text">{{ j.failureDetail }}</span>
+                  }
+                </div>
+              }
+              @if (uploads().get(v.id); as up) {
+                @let p = up.progress();
+                <div>
+                  {{ 'admin.media.upload.' + p.phase | transloco }}
+                  @if (p.phase === 'uploading' || p.phase === 'paused') {
+                    <progress [max]="p.totalBytes" [value]="p.sentBytes"></progress>
+                    {{ bytes(p.sentBytes) }} / {{ bytes(p.totalBytes) }}
+                  }
+                  @if (p.errorKey) {
+                    <span class="error-text" role="alert">
+                      {{
+                        p.errorKey
+                          | transloco
+                            : { needed: bytes(p.neededBytes), available: bytes(p.availableBytes) }
+                      }}
+                    </span>
+                  }
+                </div>
+              }
+            </td>
+            <td>
+              @if (v.currentBytes) {
+                <div>{{ 'admin.media.encode' | transloco }} {{ bytes(v.currentBytes) }}</div>
+              }
+              @if (v.sourceKept) {
+                <div class="muted">
+                  {{ 'admin.media.source' | transloco }} {{ bytes(v.sourceBytes) }}
+                </div>
+              }
+            </td>
+            <td>
+              <div class="inline">
+                <label class="btn">
+                  {{
+                    (v.openUploadId ? 'admin.media.resume' : 'admin.media.upload.pick') | transloco
+                  }}
+                  <input
+                    class="visually-hidden"
+                    type="file"
+                    accept="video/*,.mkv"
+                    (change)="upload(v, $event)"
+                  />
+                </label>
+                @if (uploads().get(v.id)?.progress()?.phase === 'uploading') {
+                  <button class="btn" type="button" (click)="stopUpload(v)">
+                    {{ 'admin.media.pause' | transloco }}
+                  </button>
+                }
+                @if (v.openUploadId) {
+                  <button class="btn" type="button" [disabled]="busy()" (click)="abortUpload(v)">
+                    {{ 'admin.media.abort' | transloco }}
+                  </button>
+                }
+                @if (v.job && (v.job.status === 'queued' || v.job.status === 'running')) {
+                  <button class="btn" type="button" [disabled]="busy()" (click)="cancelJob(v)">
+                    {{ 'admin.jobs.cancel' | transloco }}
+                  </button>
+                }
+                @if (v.status === 'ready' || v.status === 'failed') {
+                  <button
+                    class="btn"
+                    type="button"
+                    [disabled]="busy() || !v.sourceKept"
+                    [attr.title]="v.sourceKept ? null : ('admin.media.sourceGone' | transloco)"
+                    (click)="retranscode(v)"
+                  >
+                    {{ 'admin.media.retranscode' | transloco }}
+                  </button>
+                  @if (!v.sourceKept) {
+                    <span class="muted">{{ 'admin.media.sourceGone' | transloco }}</span>
+                  }
+                }
+                <button
+                  class="btn btn-danger"
+                  type="button"
+                  [disabled]="busy()"
+                  (click)="removeVariant(v)"
+                >
+                  {{ 'admin.remove' | transloco }}
+                </button>
+              </div>
+              <div class="inline">
+                <input
+                  #subLang
+                  type="text"
+                  maxlength="35"
+                  [attr.aria-label]="'admin.media.subtitleLanguage' | transloco"
+                  [value]="v.language"
+                />
+                <select #subKind [attr.aria-label]="'admin.media.subtitleKind' | transloco">
+                  <option value="subtitles">{{ 'admin.media.kind.subtitles' | transloco }}</option>
+                  <option value="captions">{{ 'admin.media.kind.captions' | transloco }}</option>
+                  <option value="forced">{{ 'admin.media.kind.forced' | transloco }}</option>
+                </select>
+                <label class="btn">
+                  {{ 'admin.media.addSubtitle' | transloco }}
+                  <input
+                    class="visually-hidden"
+                    type="file"
+                    accept=".vtt,text/vtt"
+                    (change)="subtitle(v, subLang.value, subKind.value, $event)"
+                  />
+                </label>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  } @empty {
+    <p class="muted">{{ 'admin.media.none' | transloco }}</p>
+  }
+
+  <h3>{{ 'admin.media.images' | transloco }}</h3>
+  <div class="inline">
+    <label class="btn">
+      {{ 'admin.media.uploadPoster' | transloco }}
+      <input
+        class="visually-hidden"
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        (change)="image('poster', $event)"
+      />
+    </label>
+    <label class="btn">
+      {{ 'admin.media.uploadBackdrop' | transloco }}
+      <input
+        class="visually-hidden"
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        (change)="image('backdrop', $event)"
+      />
+    </label>
+    @if (title().kind === 'show') {
+      <select #stillEp [attr.aria-label]="'admin.media.episode' | transloco">
+        @for (e of episodes(); track e.id) {
+          <option [value]="e.id">{{ e.label }}</option>
+        }
+      </select>
+      <label class="btn">
+        {{ 'admin.media.uploadStill' | transloco }}
+        <input
+          class="visually-hidden"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          (change)="image('still', $event, stillEp.value)"
+        />
+      </label>
+    }
+  </div>
+  @if (imageStatus(); as key) {
+    <p role="status">{{ key | transloco }}</p>
+  }
+</section>

@@ -24,8 +24,6 @@ const detail = {
     { number: 1, name: null, year: 2002, episodeCount: 13 },
   ],
   languages: [],
-  poster: null,
-  backdrop: null,
 };
 
 describe('TitlePage', () => {

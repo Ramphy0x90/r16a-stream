@@ -190,7 +190,14 @@ After the cluster runs Traefik 3.7 everywhere, the active health check in DECISI
 
 ### 5.3 Storage full
 
-The admin area warns when logical free space minus reservations drops below `R16A_STORAGE_WARN_FREE_BYTES` (default 100 GB), refuses uploads that do not fit above `R16A_STORAGE_MIN_FREE_BYTES` (default 20 GB), and the worker holds outputs it cannot fit (`storage_full`). To free space, use the per-title storage list, delete variants or titles that are no longer needed (their encodes go after the 24 hour GC grace), or add capacity. **TODO (Phase 4)** step by step.
+The admin area warns when logical free space minus reservations drops below `R16A_STORAGE_WARN_FREE_BYTES` (default 100 GB), refuses uploads that do not fit above `R16A_STORAGE_MIN_FREE_BYTES` (default 20 GB), and the worker holds outputs it cannot fit (`storage_full`). To free space:
+1. Open **Admin, Storage**. Check that capacity is known. "Capacity unknown" means the metrics of section 5.1 are not set up, and admission then only caps what is in flight (`R16A_STORAGE_UNKNOWN_BUDGET_BYTES`).
+2. Look at **Reserved**. Uploads and transcodes that wait hold their reservation. Cancel jobs you do not need in **Admin, Jobs**, which releases it at once.
+3. Use **Largest titles** to find what takes the space. On a title's page, the media panel shows each language with its encode and its source if kept.
+4. Delete languages or titles that are no longer needed. Sources go at once, encodes after the GC grace (`R16A_GC_GRACE_HOURS`, default 24 hours), because playback tokens issued before may still use them.
+5. With `R16A_SOURCE_RETENTION=keep`, sources stay after transcoding. Switching to `delete` frees them on the next retention round (every 5 minutes), once their encode is verified.
+6. Jobs waiting with `storage_full` retry every 15 minutes on their own. Nothing needs restarting.
+7. If none of this frees enough, add capacity to both Garage nodes, since every object is stored twice.
 
 ## 6. Traefik
 
@@ -269,12 +276,13 @@ Concurrency: `R16A_WORKER_TRANSCODE_CONCURRENCY` (default 1). Each running job n
 
 ## 11. Joining the ThinkStation for Quick Sync
 
-**TODO (Phase 4)**. x264 stays the default until this is done. Outline:
+x264 stays the default until this is done. The worker checks a hardware encoder at start with a one frame test encode and falls back to x264 when the render node is missing or the test fails. The admin storage page shows the encoder in use per worker, `x264 (fallback)` after a failed check. Steps:
 1. Install the same OS baseline and container runtime as the other nodes, join with `kubeadm join`.
 2. If the worker should move there, move the `r16a.cloud/transcode=true` label (section 10).
 3. Install the Intel GPU device plugin (operator or DaemonSet) so the node advertises `gpu.intel.com/i915`. Why: the plugin hands the render device to a pod without a privileged container or a hostPath.
 4. Set `R16A_WORKER_ENCODER=qsv` (or `vaapi`) and add the `gpu.intel.com/i915: 1` request in `worker.yaml`.
-5. Check `/readyz` details show the hardware encoder, not the x264 fallback.
+5. Check that **Admin, Storage** shows `qsv` or `vaapi` for the worker, not `x264 (fallback)`.
+6. Measure before switching for good (SPEC 7.5). Transcode the seed clip and one real 2 hour film with each encoder, note wall time, output size per rung, and VMAF against the source (`ffmpeg -lavfi libvmaf`). Adjust `-global_quality` in `backend/src/transcode/ffmpeg.rs` until the hardware output matches x264 on VMAF within 2 points, and write the numbers into SPEC 7.5.
 
 ## 12. Deploy and rollback
 

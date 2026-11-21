@@ -101,17 +101,7 @@ async fn run() -> ExitCode {
         }
     };
     let write_health = Arc::new(WriteHealth::default());
-    let image_worker = Arc::new(ImageWorker {
-        db: pool.clone(),
-        storage: storage.clone(),
-        ffmpeg: config.ffmpeg.clone(),
-        ffprobe: config.ffprobe.clone(),
-        scratch_root: config.scratch_dir.clone(),
-        instance: r16a_stream_backend::instance_name(),
-    });
-    for _ in 0..config.image_concurrency {
-        tokio::spawn(image_worker.clone().run());
-    }
+    spawn_job_workers(&config, &pool, &storage).await;
     spawn_reaper(pool.clone());
     probe::spawn(
         storage,
@@ -150,6 +140,60 @@ async fn run() -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+/// Starts the image, transcode and housekeeping loops (SPEC 7.2), after the encoder check of
+/// SPEC 7.5.
+async fn spawn_job_workers(config: &WorkerConfig, pool: &sqlx::PgPool, storage: &Arc<GarageClient>) {
+    let image_worker = Arc::new(ImageWorker {
+        db: pool.clone(),
+        storage: storage.clone(),
+        ffmpeg: config.ffmpeg.clone(),
+        ffprobe: config.ffprobe.clone(),
+        scratch_root: config.scratch_dir.clone(),
+        instance: r16a_stream_backend::instance_name(),
+    });
+    for _ in 0..config.image_concurrency {
+        tokio::spawn(image_worker.clone().run());
+    }
+    let (encoder, encoder_label) =
+        r16a_stream_backend::transcode::worker::choose_encoder(&config.ffmpeg, config.encoder).await;
+    let instance = r16a_stream_backend::instance_name();
+    if let Err(e) = r16a_stream_backend::transcode::repository::report_encoder(pool, &instance, encoder_label).await {
+        tracing::warn!(error = %e, "reporting the encoder failed");
+    }
+    tracing::info!(encoder = encoder_label, "transcode encoder");
+    let transcode_worker = Arc::new(r16a_stream_backend::transcode::worker::TranscodeWorker {
+        db: pool.clone(),
+        storage: storage.clone(),
+        ffmpeg: config.ffmpeg.clone(),
+        ffprobe: config.ffprobe.clone(),
+        scratch_root: config.scratch_dir.clone(),
+        instance,
+        encoder,
+        scratch_reserve: config.scratch_reserve_bytes,
+        min_free: config.min_free_bytes,
+        scratch_in_use: Arc::default(),
+    });
+    for _ in 0..config.transcode_concurrency {
+        tokio::spawn(transcode_worker.clone().run());
+    }
+    let housekeeping = Arc::new(r16a_stream_backend::transcode::housekeeping::HousekeepingWorker {
+        db: pool.clone(),
+        storage: storage.clone(),
+        instance: r16a_stream_backend::instance_name(),
+        gc_grace: config.gc_grace,
+    });
+    // The first encode GC after start, unless one is pending already (SPEC 7.2).
+    match pool.acquire().await {
+        Ok(mut conn) => {
+            if let Err(e) = r16a_stream_backend::transcode::repository::enqueue_gc(&mut conn, 60.0).await {
+                tracing::warn!(error = %e, "queueing encode GC failed");
+            }
+        }
+        Err(e) => tracing::warn!(error = %e, "queueing encode GC failed"),
+    }
+    tokio::spawn(housekeeping.run());
 }
 
 /// Puts jobs back whose worker stopped heartbeating for two minutes, for example after a crash

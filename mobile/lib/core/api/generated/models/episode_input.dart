@@ -17,14 +17,12 @@ class EpisodeInput {
     return EpisodeInput(
       airDate: json.containsKey("airDate") ? json["airDate"] as String? : null,
       name: json.containsKey("name") ? json["name"] as String? : null,
-      number: _readJsonInteger(json["number"]),
+      number: json["number"] as int,
       overview: json.containsKey("overview")
           ? json["overview"] as String?
           : null,
       runtimeMinutes: json.containsKey("runtimeMinutes")
-          ? json["runtimeMinutes"] == null
-                ? null
-                : _readJsonInteger(json["runtimeMinutes"])
+          ? json["runtimeMinutes"] as int?
           : null,
     );
   }
@@ -55,14 +53,4 @@ class EpisodeInput {
     if (this.overview != null) "overview": this.overview,
     if (this.runtimeMinutes != null) "runtimeMinutes": this.runtimeMinutes,
   };
-}
-
-int _readJsonInteger(Object? value) {
-  if (value is int) {
-    return value;
-  }
-  if (value is double && value.isFinite && value == value.toInt()) {
-    return value.toInt();
-  }
-  throw FormatException('Expected a JSON integer.', value);
 }

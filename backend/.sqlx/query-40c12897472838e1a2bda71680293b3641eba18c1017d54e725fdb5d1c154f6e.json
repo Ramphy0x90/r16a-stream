@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "insert into uploads (id, purpose, image_id, image_kind, image_title_id, image_episode_id, object_key,\n                              s3_upload_id, size_bytes, part_size, part_count, created_by, expires_at)\n         values ($1, 'image_source', $2, $3, $4, $5, $6, $7, $8, 52428800, 1, $9, now() + interval '24 hours')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Int8",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "40c12897472838e1a2bda71680293b3641eba18c1017d54e725fdb5d1c154f6e"
+}

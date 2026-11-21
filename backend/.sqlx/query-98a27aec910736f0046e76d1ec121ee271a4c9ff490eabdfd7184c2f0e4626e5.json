@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select prefix from gc_orphans where bucket = 'media'\n           and first_seen_at <= now() - make_interval(secs => $1) order by first_seen_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "prefix",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "gc_orphans",
+            "name": "prefix"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Float8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "98a27aec910736f0046e76d1ec121ee271a4c9ff490eabdfd7184c2f0e4626e5"
+}

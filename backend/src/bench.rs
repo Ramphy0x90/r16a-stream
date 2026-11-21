@@ -206,7 +206,10 @@ const CASES: &[Case] = &[
     Case {
         id: "H9",
         what: "episodes of one season",
-        sql: "select e.id, e.number, e.name from episodes e
+        sql: "select e.id, e.number, e.name, e.still_image_id,
+                     array(select v.language from media_variants v
+                           where v.episode_id = e.id and v.status = 'ready' order by v.language)
+              from episodes e
               where e.season_id = (select s.id from seasons s join titles t on t.id = s.title_id
                                    where t.original_name = $1 and s.number = 2 limit 1)
               order by e.number",

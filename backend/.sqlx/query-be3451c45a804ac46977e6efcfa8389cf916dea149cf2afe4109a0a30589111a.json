@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "insert into jobs (kind, payload, variant_id, dedupe_key)\n         values ('transcode', jsonb_build_object('uploadId', $2::uuid), $1::uuid, 'transcode:' || $1::uuid::text)\n         returning id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "jobs",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "be3451c45a804ac46977e6efcfa8389cf916dea149cf2afe4109a0a30589111a"
+}

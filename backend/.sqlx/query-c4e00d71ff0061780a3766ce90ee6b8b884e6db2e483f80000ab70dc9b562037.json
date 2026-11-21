@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select id, staged_key from subtitle_tracks\n         where staged_removed_at is null and status in ('ready', 'failed') limit 100",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "subtitle_tracks",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "staged_key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "subtitle_tracks",
+            "name": "staged_key"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "c4e00d71ff0061780a3766ce90ee6b8b884e6db2e483f80000ab70dc9b562037"
+}

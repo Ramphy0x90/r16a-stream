@@ -28,6 +28,18 @@
     </select>
   </label>
 
+  @if (languages().length > 1) {
+    <label class="field">
+      <span>{{ 'catalog.filter.language' | transloco }}</span>
+      <select [value]="language() ?? ''" (change)="setFilter('language', valueOf($event))">
+        <option value="">{{ 'catalog.filter.all' | transloco }}</option>
+        @for (l of languages(); track l) {
+          <option [value]="l">{{ languageName(l) }}</option>
+        }
+      </select>
+    </label>
+  }
+
   <label class="field">
     <span>{{ 'catalog.filter.sort' | transloco }}</span>
     <select [value]="sort() ?? 'recent'" (change)="setFilter('sort', valueOf($event))">

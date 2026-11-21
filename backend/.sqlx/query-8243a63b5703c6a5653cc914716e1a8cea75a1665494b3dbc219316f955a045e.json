@@ -1,0 +1,49 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "with usage as (\n             select t.id, t.name,\n                    (coalesce((select sum(a.total_bytes) from transcode_attempts a\n                               join media_variants v on v.id = a.variant_id\n                               where v.title_id = t.id and a.status in ('ready', 'running')), 0)\n                   + coalesce((select sum(u.size_bytes) from uploads u\n                               join media_variants v on v.id = u.variant_id\n                               where v.title_id = t.id and u.status = 'completed'\n                                 and u.source_deleted_at is null), 0)\n                   + coalesce((select sum(iv.byte_size) from image_variants iv\n                               where iv.image_id in (t.poster_image_id, t.backdrop_image_id)), 0))::bigint as bytes\n             from titles t)\n           select id, name, bytes as \"bytes!\" from usage\n           where ($1::bigint is null or (bytes, id) < ($1, $2::uuid))\n           order by bytes desc, id desc limit $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "titles",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "titles",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "bytes!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "8243a63b5703c6a5653cc914716e1a8cea75a1665494b3dbc219316f955a045e"
+}

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "delete from images where id = $1 and status = 'pending' and source_bytes is null",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2ea276fd7f963460438694aa6955adfce6681ea64de72560124087ca4753f621"
+}

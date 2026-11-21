@@ -12,7 +12,6 @@ const card = (n: number) => ({
   kind: 'movie',
   name: `Movie ${n}`,
   year: 2000 + n,
-  poster: null,
 });
 
 describe('HomePage', () => {
@@ -32,6 +31,7 @@ describe('HomePage', () => {
     fixture.detectChanges();
     const http = TestBed.inject(HttpTestingController);
     http.expectOne('/api/v1/genres').flush([]);
+    http.expectOne('/api/v1/languages').flush(['en', 'it']);
     return { fixture, http };
   }
 
@@ -65,11 +65,19 @@ describe('HomePage', () => {
     expect(fixture.componentInstance.state()).toBe('error');
   });
 
+  it('filters by a content language from the URL', () => {
+    const { http } = setup({ language: 'it' });
+    const req = http.expectOne((r) => r.url === '/api/v1/titles');
+    expect(req.request.params.get('language')).toBe('it');
+    req.flush({ items: [], nextCursor: null });
+  });
+
   it('ignores unknown filter values from the URL', () => {
-    const { fixture, http } = setup({ type: 'episode', sort: 'random' });
+    const { fixture, http } = setup({ type: 'episode', sort: 'random', language: 'x;drop' });
     const req = http.expectOne((r) => r.url === '/api/v1/titles');
     expect(req.request.params.has('type')).toBe(false);
     expect(req.request.params.has('sort')).toBe(false);
+    expect(req.request.params.has('language')).toBe(false);
     req.flush({ items: [], nextCursor: null });
     expect(fixture.componentInstance.items()).toEqual([]);
   });

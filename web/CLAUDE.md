@@ -1,6 +1,6 @@
 # web
 
-**Phase 3 done** (2026-11-20). Shell, theme, i18n, nginx with the CSP, API types, sign-in through the BFF, browse and search, title page, admin catalog editor.
+**Phase 4 built** (2026-11-21, awaiting review). Shell, theme, i18n, nginx with the CSP, API types, sign-in through the BFF, browse and search with the language filter, title page, admin catalog editor, media panel with uploads, jobs and storage pages.
 
 The r16a-stream web client. Angular 22.2, TypeScript 6.0, standalone, signals, zoneless, OnPush, SCSS, Vitest through the Angular CLI. Served by nginx with a strict CSP. Architecture in `docs/SPEC.md` section 11.
 
@@ -23,6 +23,7 @@ The r16a-stream web client. Angular 22.2, TypeScript 6.0, standalone, signals, z
 - Images come from the API as `ImageSet` and render through `app-picture` (AVIF, WebP fallback, lazy, placeholder colour). Image URLs are same-origin bucket paths, allowed by `img-src 'self'`.
 - Infinite lists use `appInView` on a sentinel plus a visible "Show more" button, never scroll listeners.
 - Guards inject everything before their first `await`, `inject()` fails after it.
+- Admin pages render inside `admin/admin-layout.ts`, which holds the admin navigation and polls `/admin/storage` for the banners. Source uploads go through `core/media/uploader.ts`, which PUTs parts with `fetch` and `credentials: 'omit'`. Never put a part URL in a log, a signal that is rendered, or storage.
 - Admin routes take `adminGuard`. Confirmations are translated in the component with `TranslocoService`, pipes are not allowed in event bindings.
 - Sign-in is a full-page navigation to `/api/v1/auth/login?returnTo=`, never an XHR. The session is an HttpOnly cookie, scripts never see it. `SessionService` knows only what `/api/v1/me` answers, and full-page navigation goes through the `NAVIGATOR` token so tests can replace it.
 - Routes that need a user take `authGuard`. A 401 from any API call except `/me` sends the user to `/signin?returnTo=` through `unauthorizedInterceptor`. The BFF sends failed logins to `/signin?error=failed` or `error=denied`, setup problems in Authentik to `error=setup&ref=<request id>`, and the guard uses `error=unavailable` when the API cannot be reached. The page shows the reference only in the 32-hex request id format, never other text from the URL.

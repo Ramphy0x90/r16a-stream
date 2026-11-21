@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update titles set poster_image_id = $2, updated_at = now() where id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5ef3c5a7ec62515f8a88705f1f6ac73ed3ba5c5cf041d4a463403bdfe28815ca"
+}

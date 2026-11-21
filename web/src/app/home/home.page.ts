@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { catchError, map, of, switchMap } from 'rxjs';
 
 import {
@@ -28,16 +28,33 @@ type LoadState = 'loading' | 'ready' | 'error';
 export class HomePage {
   private readonly catalog = inject(CatalogService);
   private readonly router = inject(Router);
+  private readonly i18n = inject(TranslocoService);
 
   /** Bound from the query string. */
   readonly type = input<string | undefined>();
   readonly genre = input<string | undefined>();
   readonly q = input<string | undefined>();
   readonly sort = input<string | undefined>();
+  readonly language = input<string | undefined>();
 
   readonly genres = toSignal(this.catalog.genres().pipe(catchError(() => of([]))), {
     initialValue: [],
   });
+
+  readonly languages = toSignal(this.catalog.languages().pipe(catchError(() => of([]))), {
+    initialValue: [],
+  });
+
+  /** Content language names in the UI language, `it` reads Italiano for an Italian UI. */
+  languageName(tag: string): string {
+    try {
+      return (
+        new Intl.DisplayNames([this.i18n.getActiveLang()], { type: 'language' }).of(tag) ?? tag
+      );
+    } catch {
+      return tag;
+    }
+  }
 
   readonly filters = computed<BrowseFilters>(() => ({
     type:
@@ -45,6 +62,9 @@ export class HomePage {
         ? (this.type() as 'movie' | 'show')
         : undefined,
     genre: this.genre() || undefined,
+    language: /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(this.language() ?? '')
+      ? this.language()
+      : undefined,
     q: this.q()?.trim() || undefined,
     sort: this.sort() === 'az' ? 'az' : undefined,
   }));
@@ -94,7 +114,7 @@ export class HomePage {
   }
 
   /** Writes one filter into the URL. The query binding then reloads the grid. */
-  setFilter(key: 'type' | 'genre' | 'q' | 'sort', value: string): void {
+  setFilter(key: 'type' | 'genre' | 'language' | 'q' | 'sort', value: string): void {
     void this.router.navigate([], {
       queryParams: { [key]: value === '' ? null : value },
       queryParamsHandling: 'merge',

@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select v.id from uploads u\n         join media_variants v on v.id = u.variant_id\n         join transcode_attempts a on a.id = v.current_attempt_id\n         where u.id = $1 and u.status = 'completed' and u.source_deleted_at is null\n           and a.upload_id = u.id and a.status = 'ready' and a.verified_at is not null\n           and a.verified_at <= now() - make_interval(secs => $2)\n           and not exists (select 1 from jobs j where j.variant_id = v.id\n                           and j.status in ('queued', 'running', 'cancelling'))\n         for update of v",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "media_variants",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Float8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "677f4e07d92873bdab68d688ad40d89f15566cb4f9f870948ee10de54a1e0655"
+}

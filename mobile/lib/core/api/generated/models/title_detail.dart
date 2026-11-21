@@ -2,13 +2,14 @@
 
 import 'credit.dart';
 import 'genre.dart';
+import 'image_set.dart';
 import 'season_summary.dart';
-import 'title_detail_poster.dart';
 import 'title_kind.dart';
 
 /// The title page (H8).
 class TitleDetail {
   const TitleDetail({
+    /// Left out when there is no ready image.
     this.backdrop,
     required this.credits,
     required this.genres,
@@ -20,6 +21,8 @@ class TitleDetail {
     required this.name,
     this.originalName,
     this.overview,
+
+    /// Left out when there is no ready image.
     this.poster,
     this.runtimeMinutes,
     required this.seasons,
@@ -29,9 +32,7 @@ class TitleDetail {
 
   factory TitleDetail.fromJson(Map<String, Object?> json) => TitleDetail(
     backdrop: json.containsKey("backdrop")
-        ? json["backdrop"] == null
-              ? null
-              : TitleDetailBackdrop.fromJson(json["backdrop"])
+        ? ImageSet.fromJson(json["backdrop"] as Map<String, Object?>)
         : null,
     credits: (json["credits"] as List<Object?>)
         .map((item) => Credit.fromJson(item as Map<String, Object?>))
@@ -50,30 +51,23 @@ class TitleDetail {
         : null,
     overview: json.containsKey("overview") ? json["overview"] as String? : null,
     poster: json.containsKey("poster")
-        ? json["poster"] == null
-              ? null
-              : TitleDetailPoster.fromJson(json["poster"])
+        ? ImageSet.fromJson(json["poster"] as Map<String, Object?>)
         : null,
     runtimeMinutes: json.containsKey("runtimeMinutes")
-        ? json["runtimeMinutes"] == null
-              ? null
-              : _readJsonInteger(json["runtimeMinutes"])
+        ? json["runtimeMinutes"] as int?
         : null,
     seasons: (json["seasons"] as List<Object?>)
         .map((item) => SeasonSummary.fromJson(item as Map<String, Object?>))
         .toList(),
-    year: json.containsKey("year")
-        ? json["year"] == null
-              ? null
-              : _readJsonInteger(json["year"])
-        : null,
+    year: json.containsKey("year") ? json["year"] as int? : null,
     additionalProperties: {
       for (final entry in json.entries)
         if (!_knownKeys.contains(entry.key)) entry.key: entry.value,
     },
   );
 
-  final TitleDetailBackdrop? backdrop;
+  /// Left out when there is no ready image.
+  final ImageSet? backdrop;
 
   final List<Credit> credits;
 
@@ -92,7 +86,8 @@ class TitleDetail {
 
   final String? overview;
 
-  final TitleDetailPoster? poster;
+  /// Left out when there is no ready image.
+  final ImageSet? poster;
 
   final int? runtimeMinutes;
 
@@ -135,14 +130,4 @@ class TitleDetail {
     "seasons": this.seasons.map((item) => item.toJson()).toList(),
     if (this.year != null) "year": this.year,
   };
-}
-
-int _readJsonInteger(Object? value) {
-  if (value is int) {
-    return value;
-  }
-  if (value is double && value.isFinite && value == value.toInt()) {
-    return value.toInt();
-  }
-  throw FormatException('Expected a JSON integer.', value);
 }

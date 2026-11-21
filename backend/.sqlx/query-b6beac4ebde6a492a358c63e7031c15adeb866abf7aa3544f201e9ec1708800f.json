@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update uploads set status = 'aborted', reserved_bytes = 0 where id = $1 and status = 'initiated'\n         returning image_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "image_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "uploads",
+            "name": "image_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "b6beac4ebde6a492a358c63e7031c15adeb866abf7aa3544f201e9ec1708800f"
+}

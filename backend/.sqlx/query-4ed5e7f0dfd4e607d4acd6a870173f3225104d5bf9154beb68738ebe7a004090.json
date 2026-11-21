@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "insert into audit_log (actor_id, action, target_kind, target_id, details) values (null, $1, $2, $3, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4ed5e7f0dfd4e607d4acd6a870173f3225104d5bf9154beb68738ebe7a004090"
+}

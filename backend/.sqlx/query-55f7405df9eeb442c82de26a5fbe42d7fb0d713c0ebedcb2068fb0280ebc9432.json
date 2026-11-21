@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select kind, runtime_minutes from titles where id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "titles",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "runtime_minutes",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "titles",
+            "name": "runtime_minutes"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "55f7405df9eeb442c82de26a5fbe42d7fb0d713c0ebedcb2068fb0280ebc9432"
+}

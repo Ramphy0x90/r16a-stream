@@ -8,6 +8,7 @@ pub mod admin;
 pub mod app;
 pub mod auth;
 pub mod bench;
+pub mod capacity;
 pub mod catalog;
 pub mod config;
 pub mod db;
@@ -17,11 +18,13 @@ pub mod http;
 pub mod images;
 pub mod jobs;
 pub mod me;
+pub mod media;
 pub mod openapi;
 pub mod state;
 pub mod storage;
 pub mod telemetry;
 pub mod tmdb;
+pub mod transcode;
 
 /// Installs ring as the process-wide TLS crypto provider.
 ///

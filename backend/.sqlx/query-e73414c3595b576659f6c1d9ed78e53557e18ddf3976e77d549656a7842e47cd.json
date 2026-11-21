@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "insert into jobs (kind, payload, variant_id, dedupe_key, priority)\n         values ('subtitle', jsonb_build_object('subtitleId', $1::uuid), $2, 'subtitle:' || $1::uuid::text, 5)\n         returning id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "jobs",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e73414c3595b576659f6c1d9ed78e53557e18ddf3976e77d549656a7842e47cd"
+}

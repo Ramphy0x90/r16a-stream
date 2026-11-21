@@ -37,6 +37,94 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/admin/images': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Starts a single-part upload of a manual poster or backdrop for a title, or a still for an
+     *     episode. Completing it through `/admin/uploads/{id}/complete` attaches the image.
+     */
+    post: operations['start_image_upload'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/jobs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The job queue, newest first. */
+    get: operations['list_jobs'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/jobs/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** One job with its progress and failure reason. */
+    get: operations['get_job'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/jobs/{id}/cancel': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Cancels a queued job, or asks a running one to stop. */
+    post: operations['cancel_job'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/jobs/{id}/retry': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Queues a failed or cancelled job again with fresh attempts. */
+    post: operations['retry_job'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/admin/seasons/{id}': {
     parameters: {
       query?: never;
@@ -64,6 +152,57 @@ export interface paths {
     put?: never;
     post: operations['create_episode'];
     delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/storage': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Capacity, reservations, warning and write health (SPEC 7.10). */
+    get: operations['storage'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/storage/titles': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Bytes per title, largest first. */
+    get: operations['storage_titles'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/subtitles/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Removes a subtitle track. */
+    delete: operations['delete_subtitle'];
     options?: never;
     head?: never;
     patch?: never;
@@ -140,6 +279,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/admin/titles/{id}/storage': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Variants of one title with their encode, source and latest job. */
+    get: operations['title_storage'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/admin/titles/{id}/unpublish': {
     parameters: {
       query?: never;
@@ -177,6 +333,58 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/admin/uploads/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** An upload with the parts Garage holds, for resuming. */
+    get: operations['get_upload'];
+    put?: never;
+    post?: never;
+    /** Aborts an open upload and releases its reservation. */
+    delete: operations['abort_upload'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/uploads/{id}/complete': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Completes the upload, checks its size and queues the transcode. */
+    post: operations['complete_upload'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/uploads/{id}/parts': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Presigned part URLs on the app's origin, one hour, at most 50 per call. */
+    post: operations['part_urls'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/admin/users/{id}/revoke-sessions': {
     parameters: {
       query?: never;
@@ -192,6 +400,91 @@ export interface paths {
      *     the group in Authentik is the ban (OPERATING 8).
      */
     post: operations['revoke_sessions'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/variants': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** A language for a movie or an episode. */
+    post: operations['create_variant'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/variants/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Removes a variant and its sources. Encodes go with encode GC. */
+    delete: operations['delete_variant'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/variants/{id}/retranscode': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** A new attempt from the kept source. */
+    post: operations['retranscode'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/variants/{id}/subtitles': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Adds a WebVTT track to a variant. The worker promotes it to the media bucket. */
+    post: operations['create_subtitle'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/admin/variants/{id}/uploads': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Starts a multipart upload of a source after the space check (SPEC 7.10). */
+    post: operations['start_upload'];
     delete?: never;
     options?: never;
     head?: never;
@@ -417,6 +710,43 @@ export interface components {
       overview?: string | null;
       /** Format: int32 */
       runtimeMinutes?: number | null;
+      /** @description Left out when there is no ready image. */
+      still?: components['schemas']['ImageSet'];
+    };
+    AdminJob: {
+      /** Format: int32 */
+      attempts: number;
+      /** @description `storage_degraded`, `storage_full` or `scratch_full` while the job waits. */
+      blockedReason?: string | null;
+      /** Format: date-time */
+      createdAt: string;
+      failureCode?: string | null;
+      failureDetail?: string | null;
+      /** Format: date-time */
+      finishedAt?: string | null;
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      imageId?: string | null;
+      /** @description `transcode`, `image`, `subtitle` or `encode_gc`. */
+      kind: string;
+      /** Format: int32 */
+      maxAttempts: number;
+      /** Format: float */
+      progress?: number | null;
+      /** Format: date-time */
+      runAfter: string;
+      /** Format: date-time */
+      startedAt?: string | null;
+      status: string;
+      /** Format: int32 */
+      storageWaits: number;
+      /** Format: uuid */
+      variantId?: string | null;
+    };
+    AdminJobPage: {
+      items: components['schemas']['AdminJob'][];
+      nextCursor?: string | null;
     };
     AdminSeason: {
       episodes: components['schemas']['AdminEpisode'][];
@@ -431,7 +761,8 @@ export interface components {
     };
     /** @description Everything an admin edits on one title, drafts included. */
     AdminTitle: {
-      backdrop?: components['schemas']['ImageSet'] | null;
+      /** @description Left out when there is no ready image. */
+      backdrop?: components['schemas']['ImageSet'];
       credits: components['schemas']['Credit'][];
       genres: components['schemas']['Genre'][];
       /** Format: uuid */
@@ -440,7 +771,8 @@ export interface components {
       name: string;
       originalName?: string | null;
       overview?: string | null;
-      poster?: components['schemas']['ImageSet'] | null;
+      /** @description Left out when there is no ready image. */
+      poster?: components['schemas']['ImageSet'];
       /** Format: int32 */
       runtimeMinutes?: number | null;
       seasons: components['schemas']['AdminSeason'][];
@@ -465,6 +797,49 @@ export interface components {
       updatedAt: string;
       /** Format: int32 */
       year?: number | null;
+    };
+    AdminVariant: {
+      /**
+       * Format: int64
+       * @description Bytes of the current encode.
+       */
+      currentBytes?: number | null;
+      /** Format: int64 */
+      durationMs?: number | null;
+      /** Format: uuid */
+      episodeId?: string | null;
+      /** Format: uuid */
+      id: string;
+      job?: components['schemas']['JobSummary'];
+      language: string;
+      /**
+       * Format: uuid
+       * @description An upload that can still be resumed.
+       */
+      openUploadId?: string | null;
+      /**
+       * Format: int64
+       * @description Bytes of the source while it is kept.
+       */
+      sourceBytes?: number | null;
+      /** @description A re-transcode needs the source. False once retention deleted it. */
+      sourceKept: boolean;
+      /** @description `awaiting_upload`, `processing`, `ready` or `failed`. */
+      status: string;
+    };
+    CompletedPart: {
+      etag: string;
+      /** Format: int32 */
+      partNumber: number;
+    };
+    ComponentHealthDto: {
+      /** @description `api` or `worker`. */
+      component: string;
+      /** @description The worker's encoder, `x264 (fallback)` when Quick Sync failed its test. */
+      encoder?: string | null;
+      fresh: boolean;
+      instance: string;
+      storageWritable: boolean;
     };
     Created: {
       /** Format: uuid */
@@ -495,7 +870,8 @@ export interface components {
       overview?: string | null;
       /** Format: int32 */
       runtimeMinutes?: number | null;
-      still?: components['schemas']['ImageSet'] | null;
+      /** @description Left out when there is no ready image. */
+      still?: components['schemas']['ImageSet'];
     };
     EpisodeInput: {
       /**
@@ -553,6 +929,39 @@ export interface components {
       /** Format: int32 */
       width: number;
     };
+    ImageUploadStart: {
+      /** @description `image/jpeg`, `image/png` or `image/webp`. */
+      contentType: string;
+      /** Format: uuid */
+      episodeId?: string | null;
+      /** @description `poster` or `backdrop` for a title, `still` for an episode. */
+      kind: string;
+      /** Format: int64 */
+      sizeBytes: number;
+      /** Format: uuid */
+      titleId?: string | null;
+    };
+    ImageUploadStarted: {
+      /** Format: uuid */
+      imageId: string;
+      /** @description Presigned PUT of the single part, valid one hour. Never log it. */
+      partUrl: string;
+      /** Format: uuid */
+      uploadId: string;
+    };
+    JobRef: {
+      /** Format: uuid */
+      jobId: string;
+    };
+    JobSummary: {
+      failureDetail?: string | null;
+      /** Format: uuid */
+      id: string;
+      /** Format: float */
+      progress?: number | null;
+      /** @description `queued`, `running`, `cancelling`, `succeeded`, `failed` or `cancelled`. */
+      status: string;
+    };
     LogoutResponse: {
       /**
        * @description Authentik's end-session endpoint. The browser navigates there so the Authentik session
@@ -575,6 +984,32 @@ export interface components {
       /** @description `dark`, `light` or `system`. */
       theme: string;
       uiLanguage: string;
+    };
+    NodeCapacity: {
+      /** Format: int64 */
+      dataAvailBytes: number;
+      /** Format: int64 */
+      dataTotalBytes: number;
+      /** @description Updated within five minutes. */
+      fresh: boolean;
+      /** Format: int64 */
+      metaAvailBytes?: number | null;
+      /** Format: int64 */
+      metaTotalBytes?: number | null;
+      node: string;
+    };
+    PartUrl: {
+      /** Format: int32 */
+      partNumber: number;
+      /** @description Presigned PUT on the app's own origin, valid one hour. Never log it. */
+      url: string;
+    };
+    PartUrls: {
+      parts: components['schemas']['PartUrl'][];
+    };
+    PartsRequest: {
+      /** @description At most 50 per request. */
+      partNumbers: number[];
     };
     SeasonInput: {
       episodes?: components['schemas']['EpisodeInput'][];
@@ -619,18 +1054,43 @@ export interface components {
       /** @description Always `r16a-stream`. */
       service: string;
     };
+    /** @description The admin storage page (SPEC 7.8, 7.10). */
+    StorageOverview: {
+      capacityKnown: boolean;
+      components: components['schemas']['ComponentHealthDto'][];
+      /** @description Some component cannot write to Garage right now. */
+      degraded: boolean;
+      /** Format: int64 */
+      logicalFreeBytes?: number | null;
+      nodes: components['schemas']['NodeCapacity'][];
+      /** Format: int64 */
+      reservedBytes: number;
+      /** @description Why capacity is unknown, `not_configured` or `stale`. */
+      unknownReason?: string | null;
+      /** @description Free space minus reservations below the warning threshold, or capacity unknown. */
+      warning: boolean;
+    };
+    StoredPartDto: {
+      etag: string;
+      /** Format: int32 */
+      partNumber: number;
+      /** Format: int64 */
+      sizeBytes: number;
+    };
     TitleCard: {
       /** Format: uuid */
       id: string;
       kind: components['schemas']['TitleKind'];
       name: string;
-      poster?: components['schemas']['ImageSet'] | null;
+      /** @description Left out when there is no ready image. */
+      poster?: components['schemas']['ImageSet'];
       /** Format: int32 */
       year?: number | null;
     };
     /** @description The title page (H8). */
     TitleDetail: {
-      backdrop?: components['schemas']['ImageSet'] | null;
+      /** @description Left out when there is no ready image. */
+      backdrop?: components['schemas']['ImageSet'];
       credits: components['schemas']['Credit'][];
       genres: components['schemas']['Genre'][];
       /** Format: uuid */
@@ -641,7 +1101,8 @@ export interface components {
       name: string;
       originalName?: string | null;
       overview?: string | null;
-      poster?: components['schemas']['ImageSet'] | null;
+      /** @description Left out when there is no ready image. */
+      poster?: components['schemas']['ImageSet'];
       /** Format: int32 */
       runtimeMinutes?: number | null;
       seasons: components['schemas']['SeasonSummary'][];
@@ -702,6 +1163,67 @@ export interface components {
       runtimeMinutes?: number | null;
       /** Format: int32 */
       year?: number | null;
+    };
+    /** @description Per-title storage and the editor's variant list (SPEC 7.10). */
+    TitleStorage: {
+      variants: components['schemas']['AdminVariant'][];
+    };
+    TitleUsageDto: {
+      /** Format: int64 */
+      bytes: number;
+      name: string;
+      /** Format: uuid */
+      titleId: string;
+    };
+    TitleUsagePage: {
+      items: components['schemas']['TitleUsageDto'][];
+      nextCursor?: string | null;
+    };
+    UploadComplete: {
+      parts: components['schemas']['CompletedPart'][];
+    };
+    UploadStart: {
+      /**
+       * Format: int64
+       * @description Read from the file by the browser when it can, 10 s to 8 h, for the space estimate.
+       */
+      durationSeconds?: number | null;
+      fileName: string;
+      /** Format: int64 */
+      sizeBytes: number;
+    };
+    UploadStarted: {
+      /** Format: int32 */
+      partCount: number;
+      /** Format: int64 */
+      partSize: number;
+      /** Format: uuid */
+      uploadId: string;
+    };
+    /** @description An upload with the parts Garage already holds, for resuming. */
+    UploadState: {
+      /** Format: int32 */
+      partCount: number;
+      /** Format: int64 */
+      partSize: number;
+      parts: components['schemas']['StoredPartDto'][];
+      /** Format: int64 */
+      sizeBytes: number;
+      /** @description `initiated`, `completed` or `aborted`. */
+      status: string;
+      /** Format: uuid */
+      uploadId: string;
+    };
+    VariantCreate: {
+      /**
+       * Format: uuid
+       * @description Required for shows, absent for movies.
+       */
+      episodeId?: string | null;
+      /** @description Content language, BCP 47, for example `it` or `pt-BR`. */
+      language: string;
+      /** Format: uuid */
+      titleId: string;
     };
   };
   responses: never;
@@ -873,6 +1395,253 @@ export interface operations {
       };
     };
   };
+  start_image_upload: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ImageUploadStart'];
+      };
+    };
+    responses: {
+      /** @description Started, with the part URL */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ImageUploadStarted'];
+        };
+      };
+      /** @description Invalid kind, target, type or size */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such title or episode, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Storage degraded, writes paused */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not enough space */
+      507: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  list_jobs: {
+    parameters: {
+      query?: {
+        status?: string;
+        kind?: string;
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description One page of jobs */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminJobPage'];
+        };
+      };
+      /** @description Invalid filter or cursor */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  get_job: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Job id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The job */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminJob'];
+        };
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such job, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  cancel_job: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Job id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Cancelled or cancelling */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such job, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description The job has ended */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  retry_job: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Job id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Queued */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such job, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not failed or cancelled, or a newer job runs */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   delete_season: {
     parameters: {
       query?: never;
@@ -1030,6 +1799,133 @@ export interface operations {
       };
       /** @description The number exists already */
       409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  storage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Storage overview */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['StorageOverview'];
+        };
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  storage_titles: {
+    parameters: {
+      query?: {
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description One page of titles */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TitleUsagePage'];
+        };
+      };
+      /** @description Invalid cursor */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  delete_subtitle: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Subtitle id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Deleted */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such track, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Storage degraded, writes paused */
+      503: {
         headers: {
           [name: string]: unknown;
         };
@@ -1380,6 +2276,43 @@ export interface operations {
       };
     };
   };
+  title_storage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Title id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Per-variant storage */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TitleStorage'];
+        };
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such title, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   unpublish: {
     parameters: {
       query?: never;
@@ -1485,6 +2418,244 @@ export interface operations {
       };
     };
   };
+  get_upload: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Upload id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Upload state */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UploadState'];
+        };
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such upload, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Storage degraded, writes paused */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  abort_upload: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Upload id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Aborted */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such upload, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description The upload is not open */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Storage degraded, writes paused */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  complete_upload: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Upload id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UploadComplete'];
+      };
+    };
+    responses: {
+      /** @description Transcode queued */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['JobRef'];
+        };
+      };
+      /** @description Parts missing or wrong, or the stored size differs */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such upload, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description The upload is no longer open, or a job runs */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Storage degraded, writes paused */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  part_urls: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Upload id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PartsRequest'];
+      };
+    };
+    responses: {
+      /** @description Part URLs */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PartUrls'];
+        };
+      };
+      /** @description Invalid part numbers */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such upload, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description The upload is no longer open */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Storage degraded, writes paused */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   revoke_sessions: {
     parameters: {
       query?: never;
@@ -1520,6 +2691,338 @@ export interface operations {
       };
       /** @description No such user, or the caller is not an admin */
       404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  create_variant: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['VariantCreate'];
+      };
+    };
+    responses: {
+      /** @description Created, awaiting its upload */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Created'];
+        };
+      };
+      /** @description Invalid language, or episode missing for a show */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such title or episode, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description This language exists already */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  delete_variant: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Variant id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Deleted */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such variant, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description A job runs for this variant */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Storage degraded, writes paused */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  retranscode: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Variant id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Transcode queued */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['JobRef'];
+        };
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such variant, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description A job runs, or source_unavailable once retention deleted the source */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not enough space for the new encode */
+      507: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  create_subtitle: {
+    parameters: {
+      query: {
+        /** @description Language of the text, BCP 47. */
+        language: string;
+        label?: string;
+        /** @description `subtitles` (default), `captions` or `forced`. */
+        kind?: string;
+      };
+      header?: never;
+      path: {
+        /** @description Variant id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    /** @description The WebVTT file, at most 2 MiB */
+    requestBody: {
+      content: {
+        'text/vtt': string;
+      };
+    };
+    responses: {
+      /** @description Staged, promotion queued */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Created'];
+        };
+      };
+      /** @description Not WebVTT, or an invalid language, label or kind */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such variant, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description A track with this language and kind exists */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Larger than 2 MiB */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Storage degraded, writes paused */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  start_upload: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Variant id */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UploadStart'];
+      };
+    };
+    responses: {
+      /** @description Started */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UploadStarted'];
+        };
+      };
+      /** @description Invalid size or file name */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not signed in */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description CSRF header or Origin missing */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such variant, or not an admin */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description An upload or job is in progress for this variant */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Storage degraded, writes paused */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not enough space, with neededBytes and availableBytes */
+      507: {
         headers: {
           [name: string]: unknown;
         };

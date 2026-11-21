@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update jobs set heartbeat_at = now(), progress = $3\n         where id = $1 and locked_by = $2 and status in ('running', 'cancelling') returning status",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jobs",
+            "name": "status"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Float4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "47e33fe91437d5c07ae8697bcf038fadbbd390542c8e3a515ad9119eef84d7fd"
+}

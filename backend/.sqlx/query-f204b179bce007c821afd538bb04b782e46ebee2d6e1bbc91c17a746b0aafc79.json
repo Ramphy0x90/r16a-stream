@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "delete from gc_orphans where bucket = 'media' and prefix = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f204b179bce007c821afd538bb04b782e46ebee2d6e1bbc91c17a746b0aafc79"
+}

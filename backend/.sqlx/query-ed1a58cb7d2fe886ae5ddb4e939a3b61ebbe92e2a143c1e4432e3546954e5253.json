@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update jobs set locked_by = null, heartbeat_at = null,\n                status = case when status = 'cancelling' then 'cancelled' else 'queued' end,\n                finished_at = case when status = 'cancelling' then now() end\n         where status in ('running', 'cancelling') and heartbeat_at < now() - make_interval(secs => $1)\n         returning id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "jobs",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Float8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "ed1a58cb7d2fe886ae5ddb4e939a3b61ebbe92e2a143c1e4432e3546954e5253"
+}

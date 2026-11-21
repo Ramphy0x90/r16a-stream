@@ -12,7 +12,7 @@ class StatusResponse {
   });
 
   factory StatusResponse.fromJson(Map<String, Object?> json) => StatusResponse(
-    apiVersion: _readJsonInteger(json["apiVersion"]),
+    apiVersion: json["apiVersion"] as int,
     service: json["service"] as String,
     additionalProperties: {
       for (final entry in json.entries)
@@ -36,14 +36,4 @@ class StatusResponse {
     "apiVersion": this.apiVersion,
     "service": this.service,
   };
-}
-
-int _readJsonInteger(Object? value) {
-  if (value is int) {
-    return value;
-  }
-  if (value is double && value.isFinite && value == value.toInt()) {
-    return value.toInt();
-  }
-  throw FormatException('Expected a JSON integer.', value);
 }

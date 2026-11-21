@@ -28,6 +28,10 @@ async fn try_sql(conn: &mut PgConnection, sql: &'static str) -> Result<(), Strin
 const DENIED: &str = "42501";
 
 #[tokio::test]
+#[allow(
+    clippy::too_many_lines,
+    reason = "one checklist of every grant, easier to audit in one place"
+)]
 async fn worker_role_reaches_only_its_grants() {
     let Some(mut c) = connect("R16A_TEST_WORKER_DATABASE_URL").await else {
         return;
@@ -64,6 +68,35 @@ async fn worker_role_reaches_only_its_grants() {
             "finishing images",
         ),
         ("delete from image_variants where false", "replacing image variants"),
+        (
+            "select id, title_id, episode_id, language, status, current_attempt_id from media_variants",
+            "variants",
+        ),
+        (
+            "update media_variants set status = 'ready' where false",
+            "switching a variant",
+        ),
+        (
+            "insert into transcode_attempts (variant_id, upload_id, encoder, storage_prefix) select null, null, 'x264', 'x' where false",
+            "attempts",
+        ),
+        (
+            "insert into renditions (attempt_id, height, width, bandwidth, average_bandwidth, codecs, frame_rate, playlist_key) select null, 360, 640, 1, 1, 'x', 25, 'x' where false",
+            "renditions",
+        ),
+        (
+            "select id, purpose, variant_id, image_id, object_key, size_bytes, status, reserved_bytes from uploads",
+            "upload sources",
+        ),
+        (
+            "update uploads set reserved_bytes = 0 where false",
+            "releasing a reservation",
+        ),
+        (
+            "update subtitle_tracks set status = 'ready' where false",
+            "promoting subtitles",
+        ),
+        ("delete from gc_orphans where false", "encode GC"),
     ] {
         try_sql(&mut c, sql)
             .await
@@ -81,6 +114,27 @@ async fn worker_role_reaches_only_its_grants() {
         (
             "create extension if not exists pgcrypto",
             "worker cannot add extensions",
+        ),
+        (
+            "select s3_upload_id from uploads",
+            "worker cannot see multipart upload ids",
+        ),
+        ("select created_by from uploads", "worker cannot see who uploaded"),
+        (
+            "update uploads set status = 'aborted'",
+            "worker cannot change upload state",
+        ),
+        ("delete from uploads", "worker cannot delete uploads"),
+        ("delete from media_variants", "worker cannot delete variants"),
+        (
+            "update media_variants set language = 'xx'",
+            "worker cannot relabel a variant",
+        ),
+        ("delete from transcode_attempts", "worker cannot delete attempts"),
+        ("update renditions set bandwidth = 1", "renditions are written once"),
+        (
+            "select label from subtitle_tracks",
+            "worker cannot read subtitle labels",
         ),
         ("select name from titles", "worker cannot read title text"),
         ("select overview from episodes", "worker cannot read episode text"),

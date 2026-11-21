@@ -234,10 +234,17 @@ pub async fn title_detail(db: &PgPool, urls: &ImageUrls, id: Uuid) -> Result<Tit
     })
 }
 
-pub async fn season_episodes(db: &PgPool, title_id: Uuid, number: i16) -> Result<Vec<Episode>, AppError> {
+pub async fn season_episodes(
+    db: &PgPool,
+    urls: &ImageUrls,
+    title_id: Uuid,
+    number: i16,
+) -> Result<Vec<Episode>, AppError> {
     let rows = repo::published_season_episodes(db, title_id, number)
         .await?
         .ok_or(AppError::NotFound)?;
+    let ids: Vec<Uuid> = rows.iter().filter_map(|e| e.still_image_id).collect();
+    let mut stills = image_sets(db, urls, &ids).await?;
     Ok(rows
         .into_iter()
         .map(|e| Episode {
@@ -247,8 +254,8 @@ pub async fn season_episodes(db: &PgPool, title_id: Uuid, number: i16) -> Result
             overview: e.overview,
             runtime_minutes: e.runtime_minutes,
             air_date: e.air_date.map(format_date),
-            languages: Vec::new(),
-            still: None,
+            still: e.still_image_id.and_then(|i| stills.remove(&i)),
+            languages: e.languages,
         })
         .collect())
 }
@@ -317,6 +324,8 @@ pub async fn admin_title(db: &PgPool, urls: &ImageUrls, id: Uuid) -> Result<Admi
         repo::seasons(db, id),
         repo::all_episodes(db, id),
     )?;
+    let still_ids: Vec<Uuid> = episodes.iter().filter_map(|e| e.still_image_id).collect();
+    let stills = image_sets(db, urls, &still_ids).await?;
     let seasons = seasons
         .into_iter()
         .map(|s| AdminSeason {
@@ -335,6 +344,7 @@ pub async fn admin_title(db: &PgPool, urls: &ImageUrls, id: Uuid) -> Result<Admi
                     overview: e.overview.clone(),
                     runtime_minutes: e.runtime_minutes,
                     air_date: e.air_date.map(format_date),
+                    still: e.still_image_id.and_then(|i| stills.get(&i).cloned()),
                 })
                 .collect(),
         })

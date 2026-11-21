@@ -112,6 +112,45 @@ pub struct TmdbConfig {
     pub timeout: Duration,
 }
 
+/// What happens to an upload's source once its transcode is verified (SPEC 7.9).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Retention {
+    Delete,
+    Keep,
+}
+
+/// Capacity, admission and retention settings of the API (SPEC 7.9, 7.10).
+#[derive(Debug)]
+pub struct StoragePolicy {
+    pub retention: Retention,
+    pub source_delete_delay: Duration,
+    pub warn_free_bytes: u64,
+    pub min_free_bytes: u64,
+    /// In-flight budget while free space is unknown.
+    pub unknown_budget_bytes: u64,
+    /// One `/metrics` URL per Garage node, admin port 3903. Empty means capacity unknown.
+    pub metrics_endpoints: Vec<Url>,
+    /// Garage's read-only `metrics_token`, never the admin token.
+    pub metrics_token: Option<SecretString>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Encoder {
+    X264,
+    Qsv,
+    Vaapi,
+}
+
+impl Encoder {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::X264 => "x264",
+            Self::Qsv => "qsv",
+            Self::Vaapi => "vaapi",
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct ApiConfig {
     pub env: Env,
@@ -127,6 +166,9 @@ pub struct ApiConfig {
     pub s3_public_endpoint: Url,
     pub auth: AuthConfig,
     pub tmdb: TmdbConfig,
+    pub storage: StoragePolicy,
+    /// Longest playback token, which encode GC must outlast (SPEC 9.3, 7.6).
+    pub playback_max_lifetime_hours: u32,
 }
 
 #[derive(Debug)]
@@ -141,6 +183,15 @@ pub struct WorkerConfig {
     pub ffprobe: std::path::PathBuf,
     /// Image jobs run at once in this worker, default 2 (SPEC 7.2).
     pub image_concurrency: usize,
+    /// Transcodes run at once, default 1.
+    pub transcode_concurrency: usize,
+    pub encoder: Encoder,
+    /// Scratch space always left free, default 10 GiB (SPEC 7.3 step 1).
+    pub scratch_reserve_bytes: u64,
+    /// How long an orphaned encode waits before deletion, default 24 h (SPEC 7.6).
+    pub gc_grace: Duration,
+    /// Output writes stop below this logical free space (SPEC 7.10).
+    pub min_free_bytes: u64,
 }
 
 /// Reads one variable. Empty strings count as missing, because orchestrators often render an
@@ -432,6 +483,78 @@ fn binary(lookup: Lookup<'_>, name: &'static str, default: &str) -> Result<std::
     Ok(p)
 }
 
+fn bytes_or(lookup: Lookup<'_>, name: &'static str, default: u64) -> Result<u64, ConfigError> {
+    parse_or(lookup, name, default)
+}
+
+fn hours(lookup: Lookup<'_>, name: &'static str, default: u32, max: u32) -> Result<u32, ConfigError> {
+    let h: u32 = parse_or(lookup, name, default)?;
+    if h > max {
+        return Err(ConfigError::invalid(name, format!("must be at most {max}")));
+    }
+    Ok(h)
+}
+
+/// The playback token lifetime and the GC grace, checked together. A session started on an
+/// attempt that GC deletes would break, so the grace must outlast the longest token by an hour
+/// (SPEC 7.6 step 5, C11).
+fn lifetimes(lookup: Lookup<'_>) -> Result<(u32, u32), ConfigError> {
+    let playback = hours(lookup, "R16A_PLAYBACK_MAX_LIFETIME_HOURS", 23, 168)?;
+    if playback == 0 {
+        return Err(ConfigError::invalid(
+            "R16A_PLAYBACK_MAX_LIFETIME_HOURS",
+            "must be at least 1",
+        ));
+    }
+    let grace = hours(lookup, "R16A_GC_GRACE_HOURS", 24, 24 * 30)?;
+    if grace < playback + 1 {
+        return Err(ConfigError::invalid(
+            "R16A_GC_GRACE_HOURS",
+            "must be at least R16A_PLAYBACK_MAX_LIFETIME_HOURS plus 1",
+        ));
+    }
+    Ok((playback, grace))
+}
+
+fn storage_policy(lookup: Lookup<'_>, env: Env) -> Result<StoragePolicy, ConfigError> {
+    let retention = match get(lookup, "R16A_SOURCE_RETENTION").as_deref() {
+        None | Some("delete") => Retention::Delete,
+        Some("keep") => Retention::Keep,
+        Some(_) => return Err(ConfigError::invalid("R16A_SOURCE_RETENTION", "must be delete or keep")),
+    };
+    let mut metrics_endpoints = Vec::new();
+    for part in get(lookup, "R16A_GARAGE_METRICS_ENDPOINTS")
+        .unwrap_or_default()
+        .split(',')
+        .map(str::trim)
+        .filter(|p| !p.is_empty())
+    {
+        let u = Url::parse(part)
+            .ok()
+            .filter(|u| matches!(u.scheme(), "http" | "https") && u.host_str().is_some())
+            .ok_or_else(|| ConfigError::invalid("R16A_GARAGE_METRICS_ENDPOINTS", "holds an invalid URL"))?;
+        metrics_endpoints.push(u);
+    }
+    // The token is a secret only when there is somewhere to send it.
+    let metrics_token = if metrics_endpoints.is_empty() {
+        None
+    } else {
+        let t = required(lookup, "R16A_GARAGE_METRICS_TOKEN")?;
+        check_secret("R16A_GARAGE_METRICS_TOKEN", &t, env, 24)?;
+        Some(SecretString::from(t))
+    };
+    let delay = hours(lookup, "R16A_SOURCE_DELETE_DELAY_HOURS", 0, 24 * 90)?;
+    Ok(StoragePolicy {
+        retention,
+        source_delete_delay: Duration::from_secs(u64::from(delay) * 3600),
+        warn_free_bytes: bytes_or(lookup, "R16A_STORAGE_WARN_FREE_BYTES", 100_000_000_000)?,
+        min_free_bytes: bytes_or(lookup, "R16A_STORAGE_MIN_FREE_BYTES", 20_000_000_000)?,
+        unknown_budget_bytes: bytes_or(lookup, "R16A_STORAGE_UNKNOWN_BUDGET_BYTES", 100_000_000_000)?,
+        metrics_endpoints,
+        metrics_token,
+    })
+}
+
 fn flag(lookup: Lookup<'_>, name: &'static str) -> Result<bool, ConfigError> {
     match get(lookup, name).as_deref() {
         None | Some("false" | "0") => Ok(false),
@@ -479,6 +602,8 @@ impl ApiConfig {
             s3_public_endpoint: url(lookup, "R16A_S3_PUBLIC_ENDPOINT")?,
             auth: auth(lookup, env)?,
             tmdb: tmdb(lookup, env)?,
+            storage: storage_policy(lookup, env)?,
+            playback_max_lifetime_hours: lifetimes(lookup)?.0,
         })
     }
 }
@@ -520,6 +645,30 @@ impl WorkerConfig {
                 }
                 n
             },
+            transcode_concurrency: {
+                let n: usize = parse_or(lookup, "R16A_WORKER_TRANSCODE_CONCURRENCY", 1)?;
+                if !(1..=8).contains(&n) {
+                    return Err(ConfigError::invalid(
+                        "R16A_WORKER_TRANSCODE_CONCURRENCY",
+                        "must be between 1 and 8",
+                    ));
+                }
+                n
+            },
+            encoder: match get(lookup, "R16A_WORKER_ENCODER").as_deref() {
+                None | Some("x264") => Encoder::X264,
+                Some("qsv") => Encoder::Qsv,
+                Some("vaapi") => Encoder::Vaapi,
+                Some(_) => {
+                    return Err(ConfigError::invalid(
+                        "R16A_WORKER_ENCODER",
+                        "must be x264, qsv or vaapi",
+                    ));
+                }
+            },
+            scratch_reserve_bytes: bytes_or(lookup, "R16A_WORKER_SCRATCH_RESERVE_BYTES", 10 * 1024 * 1024 * 1024)?,
+            gc_grace: Duration::from_secs(u64::from(lifetimes(lookup)?.1) * 3600),
+            min_free_bytes: bytes_or(lookup, "R16A_STORAGE_MIN_FREE_BYTES", 20_000_000_000)?,
         })
     }
 }

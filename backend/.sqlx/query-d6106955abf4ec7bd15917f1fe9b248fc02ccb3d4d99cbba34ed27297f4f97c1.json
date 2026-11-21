@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select id as \"id!\" from transcode_attempts where status = 'running'\n           union\n           select current_attempt_id as \"id!\" from media_variants where current_attempt_id is not null",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "d6106955abf4ec7bd15917f1fe9b248fc02ccb3d4d99cbba34ed27297f4f97c1"
+}

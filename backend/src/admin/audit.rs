@@ -29,3 +29,23 @@ pub async fn record(db: &mut PgConnection, e: Entry<'_>) -> Result<(), sqlx::Err
     .await?;
     Ok(())
 }
+
+/// An action of a background task, recorded with no actor (SPEC 7.9, actor `system`).
+pub async fn record_system(
+    db: &mut PgConnection,
+    action: &str,
+    target_kind: &str,
+    target_id: &str,
+    details: serde_json::Value,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "insert into audit_log (actor_id, action, target_kind, target_id, details) values (null, $1, $2, $3, $4)",
+        action,
+        target_kind,
+        target_id,
+        details,
+    )
+    .execute(db)
+    .await?;
+    Ok(())
+}

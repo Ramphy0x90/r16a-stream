@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select pg_try_advisory_lock(1377214465) as \"got!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "got!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "e9d60c71ca625867832da24dd3c18ce5be9d4441364d02068f6727e77f7c0b79"
+}

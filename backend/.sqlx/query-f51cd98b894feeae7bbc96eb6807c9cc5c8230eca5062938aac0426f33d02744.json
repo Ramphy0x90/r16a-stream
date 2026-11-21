@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "insert into jobs (kind, payload, image_id, dedupe_key, priority)\n         values ('image', jsonb_build_object('imageId', $1::uuid), $1, 'image:' || $1::text, 10)\n         returning id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "jobs",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f51cd98b894feeae7bbc96eb6807c9cc5c8230eca5062938aac0426f33d02744"
+}

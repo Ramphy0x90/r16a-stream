@@ -376,3 +376,43 @@ fn tmdb_token_is_required_and_language_checked() {
     assert_eq!(cfg.tmdb.base_url.as_str(), "https://api.themoviedb.org/3/");
     assert_eq!(cfg.tmdb.language, "en-US");
 }
+
+#[test]
+fn gc_grace_must_outlast_the_longest_playback_token() {
+    let mut v = base();
+    v.insert("R16A_PLAYBACK_MAX_LIFETIME_HOURS", "24".into());
+    assert!(matches!(
+        load(&v),
+        Err(ConfigError::Invalid {
+            name: "R16A_GC_GRACE_HOURS",
+            ..
+        })
+    ));
+    v.insert("R16A_GC_GRACE_HOURS", "25".into());
+    assert_eq!(load(&v).expect("config").playback_max_lifetime_hours, 24);
+}
+
+#[test]
+fn metrics_token_is_required_only_with_endpoints() {
+    let mut v = base();
+    assert!(load(&v).expect("config").storage.metrics_token.is_none());
+    v.insert("R16A_GARAGE_METRICS_ENDPOINTS", "http://10.0.0.1:3903/metrics".into());
+    assert_eq!(
+        load(&v).unwrap_err(),
+        ConfigError::Missing {
+            name: "R16A_GARAGE_METRICS_TOKEN"
+        }
+    );
+    v.insert("R16A_GARAGE_METRICS_TOKEN", GOOD_SECRET.into());
+    assert_eq!(load(&v).expect("config").storage.metrics_endpoints.len(), 1);
+}
+
+#[test]
+fn retention_defaults_to_delete() {
+    let mut v = base();
+    assert_eq!(load(&v).expect("config").storage.retention, Retention::Delete);
+    v.insert("R16A_SOURCE_RETENTION", "keep".into());
+    assert_eq!(load(&v).expect("config").storage.retention, Retention::Keep);
+    v.insert("R16A_SOURCE_RETENTION", "maybe".into());
+    assert!(load(&v).is_err());
+}

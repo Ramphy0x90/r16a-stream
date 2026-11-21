@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select id, title_id, title_kind, episode_id, language, status from media_variants where id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "media_variants",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "title_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "media_variants",
+            "name": "title_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "title_kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "media_variants",
+            "name": "title_kind"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "episode_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "media_variants",
+            "name": "episode_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "language",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "media_variants",
+            "name": "language"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "media_variants",
+            "name": "status"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "101c32b8ca5af07c7e7c7371c6f7ed6151040d8807fbfd83ed0d4b3c5a9d4445"
+}

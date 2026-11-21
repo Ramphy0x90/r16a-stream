@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update episodes set still_image_id = $2, updated_at = now() where id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b14fdbe1dcbc5bde44e564f65b2fe5f773d32a7624676f8dd10ba68ab081d571"
+}

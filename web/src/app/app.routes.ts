@@ -31,6 +31,7 @@ export const routes: Routes = [
           {
             path: 'admin',
             canActivate: [adminGuard],
+            loadComponent: () => import('./admin/admin-layout').then((m) => m.AdminLayout),
             children: [
               {
                 path: '',
@@ -49,6 +50,17 @@ export const routes: Routes = [
                 loadComponent: () =>
                   import('./admin/admin-title-edit.page').then((m) => m.AdminTitleEditPage),
                 title: 'admin.titles.edit',
+              },
+              {
+                path: 'jobs',
+                loadComponent: () => import('./admin/admin-jobs.page').then((m) => m.AdminJobsPage),
+                title: 'admin.jobs.heading',
+              },
+              {
+                path: 'storage',
+                loadComponent: () =>
+                  import('./admin/admin-storage.page').then((m) => m.AdminStoragePage),
+                title: 'admin.storage.heading',
               },
             ],
           },

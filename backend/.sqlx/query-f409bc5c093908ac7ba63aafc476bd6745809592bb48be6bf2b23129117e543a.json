@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update uploads set reserved_bytes = 0 where id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f409bc5c093908ac7ba63aafc476bd6745809592bb48be6bf2b23129117e543a"
+}

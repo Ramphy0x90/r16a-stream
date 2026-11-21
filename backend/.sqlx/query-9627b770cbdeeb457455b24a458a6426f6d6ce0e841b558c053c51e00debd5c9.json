@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "delete from title_languages tl where tl.title_id = $1 and tl.language = $2\n           and not exists (select 1 from media_variants v\n                           where v.title_id = $1 and v.language = $2 and v.status = 'ready')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9627b770cbdeeb457455b24a458a6426f6d6ce0e841b558c053c51e00debd5c9"
+}

@@ -12,7 +12,7 @@ class ImageSource {
   factory ImageSource.fromJson(Map<String, Object?> json) => ImageSource(
     format: json["format"] as String,
     url: json["url"] as String,
-    width: _readJsonInteger(json["width"]),
+    width: json["width"] as int,
     additionalProperties: {
       for (final entry in json.entries)
         if (!_knownKeys.contains(entry.key)) entry.key: entry.value,
@@ -37,14 +37,4 @@ class ImageSource {
     "url": this.url,
     "width": this.width,
   };
-}
-
-int _readJsonInteger(Object? value) {
-  if (value is int) {
-    return value;
-  }
-  if (value is double && value.isFinite && value == value.toInt()) {
-    return value.toInt();
-  }
-  throw FormatException('Expected a JSON integer.', value);
 }

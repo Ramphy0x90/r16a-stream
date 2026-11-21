@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select pg_advisory_unlock(1377214465) as \"released!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "released!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "ea755630dcf2524c423650c2760f2b46a2926be780278b8851d2066d10ac3c4d"
+}

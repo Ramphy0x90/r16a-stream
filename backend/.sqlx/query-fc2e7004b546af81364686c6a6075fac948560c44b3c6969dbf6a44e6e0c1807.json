@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select (exists (select 1 from titles where id = $1) or exists (select 1 from episodes where id = $2)) as \"e!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "e!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "fc2e7004b546af81364686c6a6075fac948560c44b3c6969dbf6a44e6e0c1807"
+}

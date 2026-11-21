@@ -9,7 +9,11 @@
 //! is skipped for [`DOWN_FOR`], so a dead node costs one fast failure, not one per request.
 //! Nothing here assumes exactly two nodes.
 
+mod objects;
 pub mod probe;
+pub mod public;
+
+pub use objects::{ListedObject, StoredPart};
 
 use std::{
     sync::{
@@ -180,10 +184,27 @@ impl GarageClient {
         body: Option<&[u8]>,
         headers: &[(&'static str, &str)],
     ) -> Result<reqwest::Response, StorageError> {
+        self.send_with(bucket, method, sign, body, headers, None).await
+    }
+
+    /// [`Self::send`] with an overall timeout for this request instead of the client's, for
+    /// transfers that legitimately take long, such as a 60 GiB source.
+    async fn send_with(
+        &self,
+        bucket: BucketName,
+        method: &Method,
+        sign: impl Fn(&Bucket) -> Url,
+        body: Option<&[u8]>,
+        headers: &[(&'static str, &str)],
+        timeout: Option<Duration>,
+    ) -> Result<reqwest::Response, StorageError> {
         let mut last = "no endpoint answered";
         for i in self.order() {
             let url = sign(self.endpoints[i].bucket(bucket));
             let mut req = self.http.request(method.clone(), url);
+            if let Some(t) = timeout {
+                req = req.timeout(t);
+            }
             for (name, value) in headers {
                 req = req.header(*name, *value);
             }

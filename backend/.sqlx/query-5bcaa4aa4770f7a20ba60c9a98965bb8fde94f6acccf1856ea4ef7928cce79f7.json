@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update subtitle_tracks set staged_removed_at = now() where id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5bcaa4aa4770f7a20ba60c9a98965bb8fde94f6acccf1856ea4ef7928cce79f7"
+}

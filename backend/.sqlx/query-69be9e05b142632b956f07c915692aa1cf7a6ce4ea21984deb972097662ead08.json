@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update titles set backdrop_image_id = $2, updated_at = now() where id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "69be9e05b142632b956f07c915692aa1cf7a6ce4ea21984deb972097662ead08"
+}

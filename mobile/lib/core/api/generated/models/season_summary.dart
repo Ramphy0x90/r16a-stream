@@ -10,14 +10,10 @@ class SeasonSummary {
   });
 
   factory SeasonSummary.fromJson(Map<String, Object?> json) => SeasonSummary(
-    episodeCount: _readJsonInteger(json["episodeCount"]),
+    episodeCount: json["episodeCount"] as int,
     name: json.containsKey("name") ? json["name"] as String? : null,
-    number: _readJsonInteger(json["number"]),
-    year: json.containsKey("year")
-        ? json["year"] == null
-              ? null
-              : _readJsonInteger(json["year"])
-        : null,
+    number: json["number"] as int,
+    year: json.containsKey("year") ? json["year"] as int? : null,
     additionalProperties: {
       for (final entry in json.entries)
         if (!_knownKeys.contains(entry.key)) entry.key: entry.value,
@@ -44,14 +40,4 @@ class SeasonSummary {
     "number": this.number,
     if (this.year != null) "year": this.year,
   };
-}
-
-int _readJsonInteger(Object? value) {
-  if (value is int) {
-    return value;
-  }
-  if (value is double && value.isFinite && value == value.toInt()) {
-    return value.toInt();
-  }
-  throw FormatException('Expected a JSON integer.', value);
 }

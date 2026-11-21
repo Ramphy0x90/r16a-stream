@@ -21,11 +21,7 @@ class AdminTitleRow {
     name: json["name"] as String,
     status: json["status"] as String,
     updatedAt: DateTime.parse(json["updatedAt"] as String).toUtc(),
-    year: json.containsKey("year")
-        ? json["year"] == null
-              ? null
-              : _readJsonInteger(json["year"])
-        : null,
+    year: json.containsKey("year") ? json["year"] as int? : null,
     additionalProperties: {
       for (final entry in json.entries)
         if (!_knownKeys.contains(entry.key)) entry.key: entry.value,
@@ -66,14 +62,4 @@ class AdminTitleRow {
     "updatedAt": this.updatedAt.toUtc().toIso8601String(),
     if (this.year != null) "year": this.year,
   };
-}
-
-int _readJsonInteger(Object? value) {
-  if (value is int) {
-    return value;
-  }
-  if (value is double && value.isFinite && value == value.toInt()) {
-    return value.toInt();
-  }
-  throw FormatException('Expected a JSON integer.', value);
 }

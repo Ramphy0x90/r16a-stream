@@ -8,7 +8,12 @@
 //! CSRF, in `auth_web.rs`. Every row runs against freshly seeded data, so a delete in one row
 //! cannot change the answer of the next. Placeholders in the concrete path pick what the route
 //! acts on, `{user}` is the owner's user id and `{title}`, `{season}`, `{episode}` a published
-//! show with one season and one episode. `shared` gains meaning once lists can be shared.
+//! show with one season and one episode. `{variant}` is a language of that episode without
+//! uploads, `{upload}` an open upload of a second language, `{job}` a failed transcode job and
+//! `{subtitle}` a promoted track.
+//! Placeholders work in bodies too. The test state has no reachable Garage and its write probe
+//! never ran, so routes that need Garage answer 503 to admins, after the admin check.
+//! `shared` gains meaning once lists can be shared.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 mod common;
@@ -28,6 +33,7 @@ use r16a_stream_backend::{
         dto::{EpisodeInput, SeasonInput, TitleInput, TitleKind},
         service::{self, Actor},
     },
+    media::{dto::VariantCreate, service as media},
     state::AppState,
 };
 use serde_json::Value;
@@ -246,6 +252,128 @@ const MATRIX: &[Row] = &[
         None,
         admin(204),
     ),
+    // Variants, uploads, jobs and storage (Phase 4).
+    row(
+        "post",
+        "/api/v1/admin/variants",
+        "/api/v1/admin/variants",
+        Some(r#"{"titleId":"{title}","episodeId":"{episode}","language":"de"}"#),
+        admin(201),
+    ),
+    row(
+        "delete",
+        "/api/v1/admin/variants/{id}",
+        "/api/v1/admin/variants/{variant}",
+        None,
+        admin(204),
+    ),
+    row(
+        "post",
+        "/api/v1/admin/variants/{id}/uploads",
+        "/api/v1/admin/variants/{variant}/uploads",
+        Some(r#"{"fileName":"a.mkv","sizeBytes":1000}"#),
+        admin(503),
+    ),
+    row(
+        "post",
+        "/api/v1/admin/variants/{id}/retranscode",
+        "/api/v1/admin/variants/{variant}/retranscode",
+        None,
+        admin(409),
+    ),
+    row(
+        "get",
+        "/api/v1/admin/titles/{id}/storage",
+        "/api/v1/admin/titles/{title}/storage",
+        None,
+        admin(200),
+    ),
+    row(
+        "get",
+        "/api/v1/admin/uploads/{id}",
+        "/api/v1/admin/uploads/{upload}",
+        None,
+        admin(503),
+    ),
+    row(
+        "delete",
+        "/api/v1/admin/uploads/{id}",
+        "/api/v1/admin/uploads/{upload}",
+        None,
+        admin(503),
+    ),
+    row(
+        "post",
+        "/api/v1/admin/uploads/{id}/parts",
+        "/api/v1/admin/uploads/{upload}/parts",
+        Some(r#"{"partNumbers":[1]}"#),
+        admin(503),
+    ),
+    row(
+        "post",
+        "/api/v1/admin/uploads/{id}/complete",
+        "/api/v1/admin/uploads/{upload}/complete",
+        Some(r#"{"parts":[{"partNumber":1,"etag":"\"a\""}]}"#),
+        admin(503),
+    ),
+    row("get", "/api/v1/admin/jobs", "/api/v1/admin/jobs", None, admin(200)),
+    row(
+        "get",
+        "/api/v1/admin/jobs/{id}",
+        "/api/v1/admin/jobs/{job}",
+        None,
+        admin(200),
+    ),
+    row(
+        "post",
+        "/api/v1/admin/jobs/{id}/retry",
+        "/api/v1/admin/jobs/{job}/retry",
+        None,
+        admin(204),
+    ),
+    row(
+        "post",
+        "/api/v1/admin/jobs/{id}/cancel",
+        "/api/v1/admin/jobs/{job}/cancel",
+        None,
+        admin(409),
+    ),
+    row(
+        "post",
+        "/api/v1/admin/images",
+        "/api/v1/admin/images",
+        Some(r#"{"kind":"poster","titleId":"{title}","sizeBytes":10,"contentType":"image/png"}"#),
+        admin(503),
+    ),
+    // The matrix sends JSON, which the subtitle route refuses before anything else.
+    row(
+        "post",
+        "/api/v1/admin/variants/{id}/subtitles",
+        "/api/v1/admin/variants/{variant}/subtitles?language=it",
+        Some("{}"),
+        admin(400),
+    ),
+    row(
+        "delete",
+        "/api/v1/admin/subtitles/{id}",
+        "/api/v1/admin/subtitles/{subtitle}",
+        None,
+        admin(204),
+    ),
+    row(
+        "get",
+        "/api/v1/admin/storage",
+        "/api/v1/admin/storage",
+        None,
+        admin(200),
+    ),
+    row(
+        "get",
+        "/api/v1/admin/storage/titles",
+        "/api/v1/admin/storage/titles",
+        None,
+        admin(200),
+    ),
     // Last, because it revokes the owner's tokens, which in the same second would refuse the
     // owner's freshly minted tokens in the rows after it.
     row(
@@ -296,6 +424,10 @@ struct Seed {
     title: Uuid,
     season: Uuid,
     episode: Uuid,
+    variant: Uuid,
+    upload: Uuid,
+    job: Uuid,
+    subtitle: Uuid,
 }
 
 /// A published show with season 1 and episode 1, created through the service as the admin.
@@ -336,10 +468,54 @@ async fn seed(state: &AppState, admin_id: Uuid) -> Seed {
         .unwrap();
     service::set_published(&state.db, actor, title, true).await.unwrap();
     let detail = service::admin_title(&state.db, &state.image_urls, title).await.unwrap();
+    let episode = detail.seasons[0].episodes[0].id;
+    let variant_for = |language: &str| VariantCreate {
+        title_id: title,
+        episode_id: Some(episode),
+        language: language.to_owned(),
+    };
+    let variant = media::create_variant(&state.db, actor, variant_for("it"))
+        .await
+        .unwrap();
+    let other = media::create_variant(&state.db, actor, variant_for("en"))
+        .await
+        .unwrap();
+    let upload = Uuid::new_v4();
+    sqlx::query(
+        "insert into uploads (id, purpose, variant_id, object_key, s3_upload_id, size_bytes, part_size, part_count,
+                              created_by, expires_at)
+         values ($1, 'video_source', $2, 'sources/' || $2 || '/' || $1, 'mp-1', 1000, 52428800, 1, $3,
+                 now() + interval '1 hour')",
+    )
+    .bind(upload)
+    .bind(other)
+    .bind(admin_id)
+    .execute(&state.db)
+    .await
+    .unwrap();
+    let job: Uuid = sqlx::query_scalar(
+        "insert into jobs (kind, status, variant_id, finished_at) values ('transcode', 'failed', $1, now()) returning id",
+    )
+    .bind(other)
+    .fetch_one(&state.db)
+    .await
+    .unwrap();
+    let subtitle: Uuid = sqlx::query_scalar(
+        "insert into subtitle_tracks (variant_id, language, status, staged_key, object_key, byte_size)
+         values ($1, 'it', 'ready', 'subtitles/x.vtt', 'v/x/subtitles/x.vtt', 10) returning id",
+    )
+    .bind(other)
+    .fetch_one(&state.db)
+    .await
+    .unwrap();
     Seed {
         title,
         season: detail.seasons[0].id,
-        episode: detail.seasons[0].episodes[0].id,
+        episode,
+        variant,
+        upload,
+        job,
+        subtitle,
     }
 }
 
@@ -371,13 +547,19 @@ async fn every_route_answers_each_caller_as_declared(pool: PgPool) {
     for r in MATRIX {
         for (i, who) in CALLERS.into_iter().enumerate() {
             let s = seed(&state, ids[4]).await;
-            let path = r
-                .path
-                .replace("{user}", &ids[1].to_string())
-                .replace("{title}", &s.title.to_string())
-                .replace("{season}", &s.season.to_string())
-                .replace("{episode}", &s.episode.to_string());
-            let (status, _) = send(&state, i, r.method, &path, r.body, token(who).as_deref()).await;
+            let fill = |t: &str| {
+                t.replace("{user}", &ids[1].to_string())
+                    .replace("{title}", &s.title.to_string())
+                    .replace("{season}", &s.season.to_string())
+                    .replace("{episode}", &s.episode.to_string())
+                    .replace("{variant}", &s.variant.to_string())
+                    .replace("{upload}", &s.upload.to_string())
+                    .replace("{job}", &s.job.to_string())
+                    .replace("{subtitle}", &s.subtitle.to_string())
+            };
+            let path = fill(r.path);
+            let body = r.body.map(fill);
+            let (status, _) = send(&state, i, r.method, &path, body.as_deref(), token(who).as_deref()).await;
             if status != r.expect[i] {
                 failures.push(format!(
                     "{} {} as {}: expected {}, got {status}",

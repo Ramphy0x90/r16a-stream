@@ -39,7 +39,8 @@
       "type": "Tipo",
       "genre": "Genere",
       "sort": "Ordine",
-      "all": "Tutti"
+      "all": "Tutti",
+      "language": "Lingua"
     },
     "sort": {
       "recent": "Aggiunti di recente",
@@ -123,6 +124,109 @@
       "note": "Le immagini vengono scaricate al salvataggio e compaiono dopo l’elaborazione.",
       "removePoster": "Rimuovi locandina",
       "removeBackdrop": "Rimuovi sfondo"
+    },
+    "media": {
+      "heading": "Lingue e media",
+      "language": "Lingua",
+      "episode": "Episodio",
+      "addLanguage": "Aggiungi lingua",
+      "size": "Dimensione",
+      "actions": "Azioni",
+      "encode": "Codifica",
+      "source": "Originale",
+      "resume": "Riprendi caricamento",
+      "pause": "Pausa",
+      "abort": "Annulla caricamento",
+      "retranscode": "Transcodifica di nuovo",
+      "sourceGone": "L'originale è stato eliminato dopo la transcodifica. Carica di nuovo il file per ricodificare.",
+      "addSubtitle": "Aggiungi sottotitoli",
+      "subtitleLanguage": "Lingua dei sottotitoli",
+      "subtitleKind": "Tipo di sottotitoli",
+      "kind": {
+        "subtitles": "Sottotitoli",
+        "captions": "Per non udenti",
+        "forced": "Forzati"
+      },
+      "none": "Ancora nessuna lingua. Aggiungine una, poi carica il suo video.",
+      "images": "Immagini",
+      "uploadPoster": "Carica locandina",
+      "uploadBackdrop": "Carica sfondo",
+      "uploadStill": "Carica fotogramma",
+      "imageUploading": "Caricamento dell'immagine…",
+      "imageQueued": "L'immagine è caricata e comparirà dopo l'elaborazione.",
+      "resumeMismatch": "Questo non è il file del caricamento interrotto. Scegli lo stesso file o annulla il caricamento.",
+      "noSpace": "Spazio insufficiente. Questo caricamento richiede {{needed}}, liberi {{available}}.",
+      "busy": "Per questa lingua è già in corso un caricamento o una transcodifica.",
+      "uploadFailed": "Il caricamento non è riuscito. Scegli di nuovo il file per riprenderlo.",
+      "state": {
+        "awaiting_upload": "In attesa del video",
+        "processing": "In elaborazione",
+        "ready": "Pronto",
+        "failed": "Non riuscito"
+      },
+      "upload": {
+        "pick": "Carica video",
+        "starting": "Avvio…",
+        "uploading": "Caricamento",
+        "paused": "In pausa, l'archivio è degradato",
+        "completing": "Completamento…",
+        "done": "Caricato, transcodifica in coda",
+        "failed": "Caricamento non riuscito",
+        "refused": "Caricamento rifiutato",
+        "cancelled": "In pausa, scegli di nuovo il file per riprendere"
+      }
+    },
+    "jobs": {
+      "heading": "Attività",
+      "all": "Tutte",
+      "kind": "Tipo",
+      "created": "Creata",
+      "detail": "Dettagli",
+      "retry": "Riprova",
+      "cancel": "Annulla",
+      "none": "Nessuna attività.",
+      "attempts": "Tentativo {{n}} di {{max}}, {{waits}} attese di archiviazione",
+      "status": {
+        "queued": "In coda",
+        "running": "In corso",
+        "cancelling": "Annullamento",
+        "succeeded": "Completata",
+        "failed": "Non riuscita",
+        "cancelled": "Annullata"
+      },
+      "kinds": {
+        "transcode": "Transcodifica",
+        "image": "Immagine",
+        "subtitle": "Sottotitoli",
+        "encode_gc": "Pulizia dell'archivio"
+      },
+      "blocked": {
+        "storage_degraded": "In attesa che l'archivio accetti scritture",
+        "storage_full": "In attesa di spazio libero",
+        "scratch_full": "In attesa di spazio sul disco del worker"
+      }
+    },
+    "storage": {
+      "heading": "Archivio",
+      "free": "{{free}} liberi, {{reserved}} riservati ai caricamenti in corso",
+      "reserved": "{{reserved}} riservati ai caricamenti in corso",
+      "unknown": {
+        "not_configured": "Spazio libero sconosciuto, le metriche di Garage non sono configurate.",
+        "stale": "Spazio libero sconosciuto, le metriche di Garage non sono aggiornate."
+      },
+      "node": "Nodo",
+      "data": "Dati liberi / totali",
+      "metadata": "Metadati liberi / totali",
+      "stale": "(non aggiornato)",
+      "components": "Stato di scrittura",
+      "writable": "Le scritture funzionano",
+      "notWritable": "Le scritture non riescono",
+      "titles": "Titoli più grandi"
+    },
+    "banner": {
+      "degraded": "L'archivio è degradato. Caricamenti e transcodifiche sono in pausa, la riproduzione continua a funzionare.",
+      "full": "L'archivio è quasi pieno.",
+      "unknown": "La capacità dell'archivio è sconosciuta finché le metriche di Garage non sono configurate."
     }
   }
 }

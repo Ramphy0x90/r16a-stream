@@ -108,18 +108,6 @@ abstract class AppLocalizations {
   /// **'r16a-stream'**
   String get appName;
 
-  /// Heading of the home screen.
-  ///
-  /// In en, this message translates to:
-  /// **'Welcome'**
-  String get homeHeading;
-
-  /// Placeholder text on the home screen until the catalog exists.
-  ///
-  /// In en, this message translates to:
-  /// **'Your library will appear here.'**
-  String get homeComingSoon;
-
   /// Heading of the sign-in screen.
   ///
   /// In en, this message translates to:
@@ -161,6 +149,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sign out'**
   String get signOut;
+
+  /// Button that repeats a failed load.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get retry;
+
+  /// Screen reader label while content loads.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading'**
+  String get loading;
+
+  /// Shown when the catalog cannot be loaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get catalogError;
+
+  /// Shown when no title matches.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing here yet.'**
+  String get catalogEmpty;
+
+  /// Placeholder of the search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Search titles'**
+  String get searchHint;
+
+  /// Filter chip for movies and shows.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get filterAll;
+
+  /// Genre filter label.
+  ///
+  /// In en, this message translates to:
+  /// **'Genre'**
+  String get filterGenre;
+
+  /// Genre filter option without a genre.
+  ///
+  /// In en, this message translates to:
+  /// **'All genres'**
+  String get filterAllGenres;
+
+  /// A movie.
+  ///
+  /// In en, this message translates to:
+  /// **'Movie'**
+  String get kindMovie;
+
+  /// A TV show.
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get kindShow;
+
+  /// Sort order.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently added'**
+  String get sortRecent;
+
+  /// Sort order.
+  ///
+  /// In en, this message translates to:
+  /// **'A to Z'**
+  String get sortAz;
+
+  /// Shown for an unknown title.
+  ///
+  /// In en, this message translates to:
+  /// **'This title does not exist or is not available.'**
+  String get titleMissing;
+
+  /// Heading of the credits.
+  ///
+  /// In en, this message translates to:
+  /// **'Cast and crew'**
+  String get creditsHeading;
+
+  /// Heading of the episode list.
+  ///
+  /// In en, this message translates to:
+  /// **'Episodes'**
+  String get episodesHeading;
+
+  /// Season 0.
+  ///
+  /// In en, this message translates to:
+  /// **'Specials'**
+  String get specials;
+
+  /// Empty season.
+  ///
+  /// In en, this message translates to:
+  /// **'No episodes yet.'**
+  String get noEpisodes;
+
+  /// Credit role.
+  ///
+  /// In en, this message translates to:
+  /// **'Director'**
+  String get roleDirector;
+
+  /// Credit role.
+  ///
+  /// In en, this message translates to:
+  /// **'Creator'**
+  String get roleCreator;
+
+  /// Credit role.
+  ///
+  /// In en, this message translates to:
+  /// **'Writer'**
+  String get roleWriter;
+
+  /// Credit role.
+  ///
+  /// In en, this message translates to:
+  /// **'Cast'**
+  String get roleCast;
+
+  /// Runtime.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String runtimeMinutes(int minutes);
+
+  /// Season label.
+  ///
+  /// In en, this message translates to:
+  /// **'Season {number}'**
+  String seasonNumber(int number);
+
+  /// Episode without a name.
+  ///
+  /// In en, this message translates to:
+  /// **'Episode {number}'**
+  String episodeNumber(int number);
+
+  /// Label of the content language filter on the home grid.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get filterLanguage;
+
+  /// The choice that shows titles in every content language.
+  ///
+  /// In en, this message translates to:
+  /// **'All languages'**
+  String get filterAllLanguages;
 }
 
 class _AppLocalizationsDelegate

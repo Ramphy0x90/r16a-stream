@@ -2,7 +2,11 @@
 
 Private, self-hosted streaming of movies and TV shows for members of one Authentik group. Rust (axum) API and transcode worker on PostgreSQL 15 and Garage, an Angular web app and a Flutter mobile app. Working name, the final name and hostname live only in config (`docs/OPERATING.md` section 9).
 
-**Status: Phase 3 (catalog, admin content, images) done, awaiting approval** (2026-11-20). Phase 2 gate items and security review fixes done 2026-11-20, Phase 2 approval pending. The command table below was run on the dates it states.
+**Status: Phase 3 done on web and mobile** (2026-11-21), approved pending the owner's local TMDB import test. Phase 4 (upload and transcoding) built 2026-11-21 and awaiting review, open items in `docs/SPEC.md` section 24. Phase 2 gate items and security review fixes done 2026-11-20, Phase 2 approval pending. The command table below was run on the dates it states.
+
+## Phases
+
+The authoritative phase plan is in `docs/SPEC.md` section 24. Read it before starting or scoping a phase. Every user feature ships for web and mobile in the same phase. Admin screens are web only, mobile never gets them.
 
 ## Non-negotiable rules
 

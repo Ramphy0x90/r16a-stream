@@ -51,7 +51,7 @@ class TitleInput {
           : null,
       genreIds: json.containsKey("genreIds")
           ? (json["genreIds"] as List<Object?>)
-                .map((item) => _readJsonInteger(item))
+                .map((item) => item as int)
                 .toList()
           : null,
       kind: TitleKind.fromJson(json["kind"]),
@@ -73,9 +73,7 @@ class TitleInput {
           ? json["posterPath"] as String?
           : null,
       runtimeMinutes: json.containsKey("runtimeMinutes")
-          ? json["runtimeMinutes"] == null
-                ? null
-                : _readJsonInteger(json["runtimeMinutes"])
+          ? json["runtimeMinutes"] as int?
           : null,
       seasons: json.containsKey("seasons")
           ? (json["seasons"] as List<Object?>)
@@ -84,16 +82,8 @@ class TitleInput {
                 )
                 .toList()
           : null,
-      tmdbId: json.containsKey("tmdbId")
-          ? json["tmdbId"] == null
-                ? null
-                : _readJsonInteger(json["tmdbId"])
-          : null,
-      year: json.containsKey("year")
-          ? json["year"] == null
-                ? null
-                : _readJsonInteger(json["year"])
-          : null,
+      tmdbId: json.containsKey("tmdbId") ? json["tmdbId"] as int? : null,
+      year: json.containsKey("year") ? json["year"] as int? : null,
     );
   }
 
@@ -164,14 +154,4 @@ class TitleInput {
     if (this.tmdbId != null) "tmdbId": this.tmdbId,
     if (this.year != null) "year": this.year,
   };
-}
-
-int _readJsonInteger(Object? value) {
-  if (value is int) {
-    return value;
-  }
-  if (value is double && value.isFinite && value == value.toInt()) {
-    return value.toInt();
-  }
-  throw FormatException('Expected a JSON integer.', value);
 }

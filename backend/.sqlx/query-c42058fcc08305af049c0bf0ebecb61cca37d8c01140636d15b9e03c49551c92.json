@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select title_id, title_kind, episode_id, language from media_variants where id = $1 for update",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "title_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "media_variants",
+            "name": "title_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "title_kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "media_variants",
+            "name": "title_kind"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "episode_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "media_variants",
+            "name": "episode_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "language",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "media_variants",
+            "name": "language"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "c42058fcc08305af049c0bf0ebecb61cca37d8c01140636d15b9e03c49551c92"
+}

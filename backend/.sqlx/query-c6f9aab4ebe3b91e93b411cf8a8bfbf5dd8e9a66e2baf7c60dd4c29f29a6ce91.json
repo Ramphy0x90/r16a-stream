@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select status from jobs where id = $1 for update",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jobs",
+            "name": "status"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c6f9aab4ebe3b91e93b411cf8a8bfbf5dd8e9a66e2baf7c60dd4c29f29a6ce91"
+}

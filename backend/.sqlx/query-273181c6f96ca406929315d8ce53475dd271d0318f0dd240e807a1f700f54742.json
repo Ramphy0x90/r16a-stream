@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select coalesce(sum(reserved_bytes), 0)::bigint as \"n!\" from uploads where reserved_bytes > 0",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "273181c6f96ca406929315d8ce53475dd271d0318f0dd240e807a1f700f54742"
+}

@@ -159,6 +159,8 @@
       </form>
     </section>
   }
+
+  <app-media-panel [title]="t" (changed)="refresh()" />
 } @else if (!error()) {
   <p role="status">{{ 'catalog.loading' | transloco }}</p>
 }

@@ -22,6 +22,8 @@ pub struct AppState {
     pub tmdb: Arc<crate::tmdb::client::TmdbClient>,
     pub tmdb_images: Arc<crate::images::ingest::TmdbImages>,
     pub image_urls: Arc<crate::images::urls::ImageUrls>,
+    /// Signs upload part URLs for the admin's browser.
+    pub upload_urls: Arc<crate::storage::public::UploadUrls>,
 }
 
 impl AppState {

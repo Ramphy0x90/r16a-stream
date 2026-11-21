@@ -1,0 +1,94 @@
+<div class="bar">
+  <h1>{{ 'admin.jobs.heading' | transloco }}</h1>
+</div>
+<div class="filters">
+  <label class="field">
+    <span>{{ 'admin.status.label' | transloco }}</span>
+    <select (change)="setFilter('status', $event)">
+      <option value="">{{ 'admin.jobs.all' | transloco }}</option>
+      @for (s of statuses; track s) {
+        <option [value]="s" [selected]="statusFilter() === s">
+          {{ 'admin.jobs.status.' + s | transloco }}
+        </option>
+      }
+    </select>
+  </label>
+  <label class="field">
+    <span>{{ 'admin.jobs.kind' | transloco }}</span>
+    <select (change)="setFilter('kind', $event)">
+      <option value="">{{ 'admin.jobs.all' | transloco }}</option>
+      @for (k of kinds; track k) {
+        <option [value]="k" [selected]="kindFilter() === k">
+          {{ 'admin.jobs.kinds.' + k | transloco }}
+        </option>
+      }
+    </select>
+  </label>
+</div>
+@if (error(); as key) {
+  <p class="error-text" role="alert">{{ key | transloco }}</p>
+}
+<table class="table">
+  <thead>
+    <tr>
+      <th scope="col">{{ 'admin.jobs.kind' | transloco }}</th>
+      <th scope="col">{{ 'admin.status.label' | transloco }}</th>
+      <th scope="col">{{ 'admin.jobs.created' | transloco }}</th>
+      <th scope="col">{{ 'admin.jobs.detail' | transloco }}</th>
+      <th scope="col">{{ 'admin.media.actions' | transloco }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (j of items(); track j.id) {
+      <tr>
+        <td>{{ 'admin.jobs.kinds.' + j.kind | transloco }}</td>
+        <td>
+          {{ 'admin.jobs.status.' + j.status | transloco }}
+          @if (j.status === 'running') {
+            <progress max="100" [value]="percent(j.progress)"></progress>
+            {{ percent(j.progress) }} %
+          }
+        </td>
+        <td>{{ date(j.createdAt) }}</td>
+        <td>
+          @if (j.blockedReason) {
+            <div>{{ 'admin.jobs.blocked.' + j.blockedReason | transloco }}</div>
+          }
+          @if (j.failureDetail) {
+            <div class="error-text">{{ j.failureDetail }}</div>
+          }
+          <div class="muted">
+            {{
+              'admin.jobs.attempts'
+                | transloco: { n: j.attempts, max: j.maxAttempts, waits: j.storageWaits }
+            }}
+          </div>
+        </td>
+        <td>
+          @if (j.status === 'failed' || j.status === 'cancelled') {
+            <button class="btn" type="button" (click)="retry(j)">
+              {{ 'admin.jobs.retry' | transloco }}
+            </button>
+          }
+          @if (j.status === 'queued' || j.status === 'running') {
+            <button class="btn" type="button" (click)="cancel(j)">
+              {{ 'admin.jobs.cancel' | transloco }}
+            </button>
+          }
+        </td>
+      </tr>
+    } @empty {
+      @if (!loading()) {
+        <tr>
+          <td colspan="5" class="muted">{{ 'admin.jobs.none' | transloco }}</td>
+        </tr>
+      }
+    }
+  </tbody>
+</table>
+@if (next()) {
+  <div (appInView)="loadMore()"></div>
+  <button class="btn" type="button" [disabled]="loading()" (click)="loadMore()">
+    {{ 'catalog.more' | transloco }}
+  </button>
+}

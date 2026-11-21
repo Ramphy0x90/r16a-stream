@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select pg_notify('r16a_stream_jobs', 'subtitle')",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "pg_notify",
+        "type_info": "Void",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "4ff751185cd4ce74fd3d0ab2349abbf9cdefa9a4fc324816497def7e7ecb0685"
+}

@@ -341,3 +341,142 @@ async fn invalid_utf8_in_path_and_query_does_not_crash_garage() {
         StatusCode::OK
     );
 }
+
+#[tokio::test]
+async fn client_multipart_listing_and_streaming_round_trip() {
+    let Some((s3, _)) = endpoints() else { return };
+    let api = client(&s3, common::API_KEY_ID, common::API_SECRET);
+    let worker = client(&s3, common::WORKER_KEY_ID, common::WORKER_SECRET);
+    let prefix = unique("client-mp");
+    let key = format!("{prefix}/source");
+
+    let upload_id = api
+        .create_multipart(BucketName::Uploads, &key, "video/mp4")
+        .await
+        .unwrap();
+    // Parts go up the way the browser sends them, through a URL signed for the public origin.
+    let mut vars = common::test_vars("http://localhost:4200", &s3);
+    vars.insert("R16A_S3_PUBLIC_ENDPOINT", s3.clone());
+    let cfg = common::config_from(&vars);
+    let urls = r16a_stream_backend::storage::public::UploadUrls::new(&cfg.s3_public_endpoint, &cfg.s3).unwrap();
+    let part1 = vec![b'a'; 5 * 1024 * 1024];
+    let part2 = b"tail".to_vec();
+    let http = reqwest::Client::new();
+    let mut etags = Vec::new();
+    for (n, body) in [(1u16, part1.clone()), (2, part2.clone())] {
+        let res = http
+            .put(urls.part(&key, &upload_id, n))
+            .body(body)
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        etags.push(res.headers()["etag"].to_str().unwrap().to_owned());
+    }
+    let stored = api.list_parts(BucketName::Uploads, &key, &upload_id).await.unwrap();
+    assert_eq!(stored.iter().map(|p| p.number).collect::<Vec<_>>(), [1, 2]);
+    assert_eq!(stored[0].size, part1.len() as u64);
+    assert_eq!(stored[1].etag, etags[1]);
+
+    api.complete_multipart(BucketName::Uploads, &key, &upload_id, &etags)
+        .await
+        .unwrap();
+    let total = (part1.len() + part2.len()) as u64;
+    assert_eq!(api.head_object(BucketName::Uploads, &key).await.unwrap(), Some(total));
+    assert_eq!(
+        api.head_object(BucketName::Uploads, &format!("{prefix}/nothing"))
+            .await
+            .unwrap(),
+        None
+    );
+
+    // The worker streams it to scratch, and refuses more than it was told to expect.
+    let dir = std::env::temp_dir().join(unique("dl"));
+    std::fs::create_dir_all(&dir).unwrap();
+    let file = dir.join("source");
+    assert_eq!(
+        worker
+            .get_to_file(BucketName::Uploads, &key, &file, total)
+            .await
+            .unwrap(),
+        total
+    );
+    assert_eq!(std::fs::metadata(&file).unwrap().len(), total);
+    assert!(
+        worker
+            .get_to_file(BucketName::Uploads, &key, &file, total - 1)
+            .await
+            .is_err()
+    );
+
+    // Listing and prefix deletion on the media bucket, with the worker key that may write there.
+    for n in 0..3 {
+        worker
+            .put_object(
+                BucketName::Media,
+                &format!("{prefix}/v/{n}.m4s"),
+                b"x",
+                "video/iso.segment",
+                None,
+            )
+            .await
+            .unwrap();
+    }
+    let listed = worker
+        .list_prefix(BucketName::Media, &format!("{prefix}/"))
+        .await
+        .unwrap();
+    assert_eq!(listed.len(), 3);
+    assert!(listed.iter().all(|o| o.size == 1));
+    assert_eq!(
+        worker
+            .delete_prefix(BucketName::Media, &format!("{prefix}/"))
+            .await
+            .unwrap(),
+        3
+    );
+    let left = worker
+        .list_prefix(BucketName::Media, &format!("{prefix}/"))
+        .await
+        .unwrap();
+    assert_eq!(left, Vec::new());
+
+    // Abort is idempotent.
+    let other = format!("{prefix}/aborted");
+    let id = api
+        .create_multipart(BucketName::Uploads, &other, "video/mp4")
+        .await
+        .unwrap();
+    api.abort_multipart(BucketName::Uploads, &other, &id).await.unwrap();
+    api.abort_multipart(BucketName::Uploads, &other, &id).await.unwrap();
+    api.delete_object(BucketName::Uploads, &key).await.unwrap();
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[tokio::test]
+async fn list_dirs_returns_the_next_level_only() {
+    let Some((s3, _)) = endpoints() else { return };
+    let worker = client(&s3, common::WORKER_KEY_ID, common::WORKER_SECRET);
+    let root = format!("{}/", unique("dirs"));
+    for k in ["a/1/x.m4s", "a/1/y.m4s", "a/2/x.m4s", "b/x.m4s", "top.vtt"] {
+        worker
+            .put_object(BucketName::Media, &format!("{root}{k}"), b"1", "video/mp4", None)
+            .await
+            .unwrap();
+    }
+    let mut dirs = worker.list_dirs(BucketName::Media, &root).await.unwrap();
+    dirs.sort();
+    assert_eq!(
+        dirs,
+        [format!("{root}a/"), format!("{root}b/"), format!("{root}top.vtt")]
+    );
+    assert_eq!(
+        worker
+            .list_dirs(BucketName::Media, &format!("{root}a/"))
+            .await
+            .unwrap()
+            .len(),
+        2
+    );
+    worker.delete_prefix(BucketName::Media, &root).await.unwrap();
+}

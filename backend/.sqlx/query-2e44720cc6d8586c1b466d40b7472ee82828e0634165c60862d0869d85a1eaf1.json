@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select pg_notify('r16a_stream_jobs', 'transcode')",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "pg_notify",
+        "type_info": "Void",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "2e44720cc6d8586c1b466d40b7472ee82828e0634165c60862d0869d85a1eaf1"
+}

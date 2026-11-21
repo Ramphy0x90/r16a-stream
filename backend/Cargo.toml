@@ -28,6 +28,8 @@ rand = { version = "0.10.3", default-features = false, features = ["std", "sys_r
 reqwest = { version = "0.13.5", default-features = false, features = ["rustls-no-provider", "http2", "stream"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 rusty-s3 = "0.11.0"
+# statvfs for the scratch space check and killing an encoder's process group (SPEC 7.3, DECISIONS B).
+rustix = { version = "1.1.6", default-features = false, features = ["std", "fs", "process"] }
 secrecy = "0.10.3"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"

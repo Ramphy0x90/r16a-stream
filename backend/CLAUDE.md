@@ -1,6 +1,6 @@
 # backend
 
-**Phase 3 done** (2026-11-20). Foundations, authentication, catalog, admin content and images. The rest in Phases 4 to 8.
+**Phase 4 built** (2026-11-21, awaiting review). Foundations, authentication, catalog, admin content, images, uploads, transcoding, retention and encode GC. The rest in Phases 5 to 8.
 
 The r16a-stream API and transcode worker. Rust 2024, axum 0.8, sqlx 0.9 on PostgreSQL 15, crate `r16a-stream-backend`, binaries `api` and `worker`. API, data model and flows are in `docs/SPEC.md` sections 4 to 10.
 
@@ -51,6 +51,18 @@ The r16a-stream API and transcode worker. Rust 2024, axum 0.8, sqlx 0.9 on Postg
 - Worker SQL may only touch the columns the worker role is granted. Test new worker queries as that role, see `tests/images.rs`.
 - Job failure classes follow SPEC 7.2. Storage problems requeue with `requeue_storage`, invalid input uses `fail_invalid`, the rest `fail_transient`. `failure_detail` takes fixed texts, never tool output.
 - `bench.rs` mirrors the catalog SQL. Change both when a hot query changes, and rerun `seed --bench`.
+
+## Media and transcoding (Phase 4)
+
+- `media/` is the API side, variants, uploads with admission, manual images, subtitles, jobs and the storage view (`service.rs`), and the background tasks (`tasks.rs`) for the capacity poller, stale upload cleanup, staged subtitle cleanup and source retention. `capacity/` parses Garage metrics and computes logical free space and the ladder estimate.
+- `transcode/` is the worker side. `ffmpeg.rs` holds the probe rules, the ladder and every argument vector, pinned by unit tests. `runner.rs` runs the encode with progress, cancel and a time limit and kills the process group. `worker.rs` is the pipeline of SPEC 7.3, `housekeeping.rs` subtitle promotion and encode GC, `repository.rs` the worker SQL.
+- `storage/objects.rs` has multipart, listing (`list_prefix`, `list_dirs` with a delimiter), HEAD, streaming download and prefix deletion. `storage/public.rs` signs part URLs for the browser on the public origin.
+- Admission (`media::service::admit`) runs under `pg_advisory_xact_lock`. Garage is never called while that lock or a row lock is held, except the single delete in retention and variant deletion, which needs the check and the delete as one step.
+- A reservation lives as long as its transcode. Every path that ends a transcode job (success, final failure, cancel by the worker or the API) releases it. Retry and re-transcode reserve again through admission.
+- Every worker query is exercised as `r16a_stream_worker` in `tests/transcode.rs`. New worker SQL goes there too.
+- Output layout is SPEC 10.2 (`v<height>/`, `a/`, `scrub/`), content types come only from `transcode::ffmpeg::content_type`.
+- Encode GC never deletes a key it cannot parse. Tests that run GC against the shared dev bucket backdate only their own `gc_orphans` rows, never all of them.
+- `tests/media.rs` covers the API flows, `tests/transcode.rs` the worker with real ffmpeg and Garage.
 
 ## Module layout (planned)
 

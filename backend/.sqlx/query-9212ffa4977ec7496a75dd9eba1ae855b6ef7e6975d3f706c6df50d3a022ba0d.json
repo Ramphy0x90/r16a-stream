@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select status, staged_key from subtitle_tracks where id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "subtitle_tracks",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "staged_key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "subtitle_tracks",
+            "name": "staged_key"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "9212ffa4977ec7496a75dd9eba1ae855b6ef7e6975d3f706c6df50d3a022ba0d"
+}

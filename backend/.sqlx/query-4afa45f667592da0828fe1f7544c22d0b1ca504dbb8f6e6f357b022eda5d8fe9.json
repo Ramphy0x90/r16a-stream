@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "insert into component_health (component, instance, storage_writable, encoder, checked_at)\n         values ('worker', $1, false, $2, now())\n         on conflict (component, instance) do update set encoder = excluded.encoder",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4afa45f667592da0828fe1f7544c22d0b1ca504dbb8f6e6f357b022eda5d8fe9"
+}

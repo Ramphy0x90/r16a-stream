@@ -137,6 +137,238 @@
         }
       }
     },
+    "/api/v1/admin/images": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Starts a single-part upload of a manual poster or backdrop for a title, or a still for an\nepisode. Completing it through `/admin/uploads/{id}/complete` attaches the image.",
+        "operationId": "start_image_upload",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImageUploadStart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Started, with the part URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageUploadStarted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid kind, target, type or size"
+          },
+          "401": {
+            "description": "Not signed in"
+          },
+          "403": {
+            "description": "CSRF header or Origin missing"
+          },
+          "404": {
+            "description": "No such title or episode, or not an admin"
+          },
+          "503": {
+            "description": "Storage degraded, writes paused"
+          },
+          "507": {
+            "description": "Not enough space"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/jobs": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "The job queue, newest first.",
+        "operationId": "list_jobs",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 512
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "maximum": 60,
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of jobs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminJobPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid filter or cursor"
+          },
+          "401": {
+            "description": "Not signed in"
+          },
+          "404": {
+            "description": "Not an admin"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/jobs/{id}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "One job with its progress and failure reason.",
+        "operationId": "get_job",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Job id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The job",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminJob"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in"
+          },
+          "404": {
+            "description": "No such job, or not an admin"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/jobs/{id}/cancel": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Cancels a queued job, or asks a running one to stop.",
+        "operationId": "cancel_job",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Job id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Cancelled or cancelling"
+          },
+          "401": {
+            "description": "Not signed in"
+          },
+          "403": {
+            "description": "CSRF header or Origin missing"
+          },
+          "404": {
+            "description": "No such job, or not an admin"
+          },
+          "409": {
+            "description": "The job has ended"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/jobs/{id}/retry": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Queues a failed or cancelled job again with fresh attempts.",
+        "operationId": "retry_job",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Job id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Queued"
+          },
+          "401": {
+            "description": "Not signed in"
+          },
+          "403": {
+            "description": "CSRF header or Origin missing"
+          },
+          "404": {
+            "description": "No such job, or not an admin"
+          },
+          "409": {
+            "description": "Not failed or cancelled, or a newer job runs"
+          }
+        }
+      }
+    },
     "/api/v1/admin/seasons/{id}": {
       "delete": {
         "tags": [
@@ -272,6 +504,123 @@
           },
           "409": {
             "description": "The number exists already"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/storage": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Capacity, reservations, warning and write health (SPEC 7.10).",
+        "operationId": "storage",
+        "responses": {
+          "200": {
+            "description": "Storage overview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageOverview"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in"
+          },
+          "404": {
+            "description": "Not an admin"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/storage/titles": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Bytes per title, largest first.",
+        "operationId": "storage_titles",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 512
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "maximum": 60,
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of titles",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TitleUsagePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid cursor"
+          },
+          "401": {
+            "description": "Not signed in"
+          },
+          "404": {
+            "description": "Not an admin"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/subtitles/{id}": {
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Removes a subtitle track.",
+        "operationId": "delete_subtitle",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Subtitle id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "Not signed in"
+          },
+          "403": {
+            "description": "CSRF header or Origin missing"
+          },
+          "404": {
+            "description": "No such track, or not an admin"
+          },
+          "503": {
+            "description": "Storage degraded, writes paused"
           }
         }
       }
@@ -602,6 +951,45 @@
         }
       }
     },
+    "/api/v1/admin/titles/{id}/storage": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Variants of one title with their encode, source and latest job.",
+        "operationId": "title_storage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Title id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Per-variant storage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TitleStorage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in"
+          },
+          "404": {
+            "description": "No such title, or not an admin"
+          }
+        }
+      }
+    },
     "/api/v1/admin/titles/{id}/unpublish": {
       "post": {
         "tags": [
@@ -694,6 +1082,209 @@
         }
       }
     },
+    "/api/v1/admin/uploads/{id}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "An upload with the parts Garage holds, for resuming.",
+        "operationId": "get_upload",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Upload id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Upload state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadState"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in"
+          },
+          "404": {
+            "description": "No such upload, or not an admin"
+          },
+          "503": {
+            "description": "Storage degraded, writes paused"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Aborts an open upload and releases its reservation.",
+        "operationId": "abort_upload",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Upload id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Aborted"
+          },
+          "401": {
+            "description": "Not signed in"
+          },
+          "403": {
+            "description": "CSRF header or Origin missing"
+          },
+          "404": {
+            "description": "No such upload, or not an admin"
+          },
+          "409": {
+            "description": "The upload is not open"
+          },
+          "503": {
+            "description": "Storage degraded, writes paused"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/uploads/{id}/complete": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Completes the upload, checks its size and queues the transcode.",
+        "operationId": "complete_upload",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Upload id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadComplete"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Transcode queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobRef"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Parts missing or wrong, or the stored size differs"
+          },
+          "401": {
+            "description": "Not signed in"
+          },
+          "403": {
+            "description": "CSRF header or Origin missing"
+          },
+          "404": {
+            "description": "No such upload, or not an admin"
+          },
+          "409": {
+            "description": "The upload is no longer open, or a job runs"
+          },
+          "503": {
+            "description": "Storage degraded, writes paused"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/uploads/{id}/parts": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Presigned part URLs on the app's origin, one hour, at most 50 per call.",
+        "operationId": "part_urls",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Upload id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Part URLs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartUrls"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid part numbers"
+          },
+          "401": {
+            "description": "Not signed in"
+          },
+          "403": {
+            "description": "CSRF header or Origin missing"
+          },
+          "404": {
+            "description": "No such upload, or not an admin"
+          },
+          "409": {
+            "description": "The upload is no longer open"
+          },
+          "503": {
+            "description": "Storage degraded, writes paused"
+          }
+        }
+      }
+    },
     "/api/v1/admin/users/{id}/revoke-sessions": {
       "post": {
         "tags": [
@@ -726,6 +1317,298 @@
           },
           "404": {
             "description": "No such user, or the caller is not an admin"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/variants": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "A language for a movie or an episode.",
+        "operationId": "create_variant",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VariantCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created, awaiting its upload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Created"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid language, or episode missing for a show"
+          },
+          "401": {
+            "description": "Not signed in"
+          },
+          "403": {
+            "description": "CSRF header or Origin missing"
+          },
+          "404": {
+            "description": "No such title or episode, or not an admin"
+          },
+          "409": {
+            "description": "This language exists already"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/variants/{id}": {
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Removes a variant and its sources. Encodes go with encode GC.",
+        "operationId": "delete_variant",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Variant id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "Not signed in"
+          },
+          "403": {
+            "description": "CSRF header or Origin missing"
+          },
+          "404": {
+            "description": "No such variant, or not an admin"
+          },
+          "409": {
+            "description": "A job runs for this variant"
+          },
+          "503": {
+            "description": "Storage degraded, writes paused"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/variants/{id}/retranscode": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "A new attempt from the kept source.",
+        "operationId": "retranscode",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Variant id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Transcode queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobRef"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in"
+          },
+          "403": {
+            "description": "CSRF header or Origin missing"
+          },
+          "404": {
+            "description": "No such variant, or not an admin"
+          },
+          "409": {
+            "description": "A job runs, or source_unavailable once retention deleted the source"
+          },
+          "507": {
+            "description": "Not enough space for the new encode"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/variants/{id}/subtitles": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Adds a WebVTT track to a variant. The worker promotes it to the media bucket.",
+        "operationId": "create_subtitle",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Variant id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "description": "Language of the text, BCP 47.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 35
+            }
+          },
+          {
+            "name": "label",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 60
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "description": "`subtitles` (default), `captions` or `forced`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The WebVTT file, at most 2 MiB",
+          "content": {
+            "text/vtt": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Staged, promotion queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Created"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not WebVTT, or an invalid language, label or kind"
+          },
+          "401": {
+            "description": "Not signed in"
+          },
+          "403": {
+            "description": "CSRF header or Origin missing"
+          },
+          "404": {
+            "description": "No such variant, or not an admin"
+          },
+          "409": {
+            "description": "A track with this language and kind exists"
+          },
+          "413": {
+            "description": "Larger than 2 MiB"
+          },
+          "503": {
+            "description": "Storage degraded, writes paused"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/variants/{id}/uploads": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Starts a multipart upload of a source after the space check (SPEC 7.10).",
+        "operationId": "start_upload",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Variant id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadStart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadStarted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid size or file name"
+          },
+          "401": {
+            "description": "Not signed in"
+          },
+          "403": {
+            "description": "CSRF header or Origin missing"
+          },
+          "404": {
+            "description": "No such variant, or not an admin"
+          },
+          "409": {
+            "description": "An upload or job is in progress for this variant"
+          },
+          "503": {
+            "description": "Storage degraded, writes paused"
+          },
+          "507": {
+            "description": "Not enough space, with neededBytes and availableBytes"
           }
         }
       }
@@ -1247,6 +2130,130 @@
               "null"
             ],
             "format": "int32"
+          },
+          "still": {
+            "$ref": "#/components/schemas/ImageSet",
+            "description": "Left out when there is no ready image."
+          }
+        }
+      },
+      "AdminJob": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "attempts",
+          "maxAttempts",
+          "storageWaits",
+          "createdAt",
+          "runAfter"
+        ],
+        "properties": {
+          "attempts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "blockedReason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`storage_degraded`, `storage_full` or `scratch_full` while the job waits."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "failureCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "failureDetail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "finishedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "imageId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`transcode`, `image`, `subtitle` or `encode_gc`."
+          },
+          "maxAttempts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "progress": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "float"
+          },
+          "runAfter": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          },
+          "storageWaits": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "variantId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "AdminJobPage": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminJob"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },
@@ -1307,14 +2314,8 @@
         ],
         "properties": {
           "backdrop": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/ImageSet"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/ImageSet",
+            "description": "Left out when there is no ready image."
           },
           "credits": {
             "type": "array",
@@ -1351,14 +2352,8 @@
             ]
           },
           "poster": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/ImageSet"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/ImageSet",
+            "description": "Left out when there is no ready image."
           },
           "runtimeMinutes": {
             "type": [
@@ -1446,6 +2441,123 @@
               "null"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "AdminVariant": {
+        "type": "object",
+        "required": [
+          "id",
+          "language",
+          "status",
+          "sourceKept"
+        ],
+        "properties": {
+          "currentBytes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Bytes of the current encode."
+          },
+          "durationMs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "episodeId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "job": {
+            "$ref": "#/components/schemas/JobSummary"
+          },
+          "language": {
+            "type": "string"
+          },
+          "openUploadId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "An upload that can still be resumed."
+          },
+          "sourceBytes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Bytes of the source while it is kept."
+          },
+          "sourceKept": {
+            "type": "boolean",
+            "description": "A re-transcode needs the source. False once retention deleted it."
+          },
+          "status": {
+            "type": "string",
+            "description": "`awaiting_upload`, `processing`, `ready` or `failed`."
+          }
+        }
+      },
+      "CompletedPart": {
+        "type": "object",
+        "required": [
+          "partNumber",
+          "etag"
+        ],
+        "properties": {
+          "etag": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "partNumber": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "ComponentHealthDto": {
+        "type": "object",
+        "required": [
+          "component",
+          "instance",
+          "storageWritable",
+          "fresh"
+        ],
+        "properties": {
+          "component": {
+            "type": "string",
+            "description": "`api` or `worker`."
+          },
+          "encoder": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The worker's encoder, `x264 (fallback)` when Quick Sync failed its test."
+          },
+          "fresh": {
+            "type": "boolean"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "storageWritable": {
+            "type": "boolean"
           }
         }
       },
@@ -1566,14 +2678,8 @@
             "format": "int32"
           },
           "still": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/ImageSet"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/ImageSet",
+            "description": "Left out when there is no ready image."
           }
         }
       },
@@ -1768,6 +2874,110 @@
           }
         }
       },
+      "ImageUploadStart": {
+        "type": "object",
+        "required": [
+          "kind",
+          "sizeBytes",
+          "contentType"
+        ],
+        "properties": {
+          "contentType": {
+            "type": "string",
+            "description": "`image/jpeg`, `image/png` or `image/webp`.",
+            "maxLength": 32
+          },
+          "episodeId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`poster` or `backdrop` for a title, `still` for an episode.",
+            "maxLength": 16
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "titleId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ImageUploadStarted": {
+        "type": "object",
+        "required": [
+          "uploadId",
+          "imageId",
+          "partUrl"
+        ],
+        "properties": {
+          "imageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "partUrl": {
+            "type": "string",
+            "description": "Presigned PUT of the single part, valid one hour. Never log it."
+          },
+          "uploadId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "JobRef": {
+        "type": "object",
+        "required": [
+          "jobId"
+        ],
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "JobSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "status"
+        ],
+        "properties": {
+          "failureDetail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "progress": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "float"
+          },
+          "status": {
+            "type": "string",
+            "description": "`queued`, `running`, `cancelling`, `succeeded`, `failed` or `cancelled`."
+          }
+        }
+      },
       "LogoutResponse": {
         "type": "object",
         "properties": {
@@ -1816,6 +3026,96 @@
             "type": "string"
           }
         }
+      },
+      "NodeCapacity": {
+        "type": "object",
+        "required": [
+          "node",
+          "dataAvailBytes",
+          "dataTotalBytes",
+          "fresh"
+        ],
+        "properties": {
+          "dataAvailBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "dataTotalBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "fresh": {
+            "type": "boolean",
+            "description": "Updated within five minutes."
+          },
+          "metaAvailBytes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "metaTotalBytes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "node": {
+            "type": "string"
+          }
+        }
+      },
+      "PartUrl": {
+        "type": "object",
+        "required": [
+          "partNumber",
+          "url"
+        ],
+        "properties": {
+          "partNumber": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "url": {
+            "type": "string",
+            "description": "Presigned PUT on the app's own origin, valid one hour. Never log it."
+          }
+        }
+      },
+      "PartUrls": {
+        "type": "object",
+        "required": [
+          "parts"
+        ],
+        "properties": {
+          "parts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartUrl"
+            }
+          }
+        }
+      },
+      "PartsRequest": {
+        "type": "object",
+        "required": [
+          "partNumbers"
+        ],
+        "properties": {
+          "partNumbers": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            },
+            "description": "At most 50 per request."
+          }
+        },
+        "additionalProperties": false
       },
       "SeasonInput": {
         "type": "object",
@@ -1976,6 +3276,86 @@
           }
         }
       },
+      "StorageOverview": {
+        "type": "object",
+        "description": "The admin storage page (SPEC 7.8, 7.10).",
+        "required": [
+          "capacityKnown",
+          "reservedBytes",
+          "warning",
+          "degraded",
+          "nodes",
+          "components"
+        ],
+        "properties": {
+          "capacityKnown": {
+            "type": "boolean"
+          },
+          "components": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ComponentHealthDto"
+            }
+          },
+          "degraded": {
+            "type": "boolean",
+            "description": "Some component cannot write to Garage right now."
+          },
+          "logicalFreeBytes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "minimum": 0
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NodeCapacity"
+            }
+          },
+          "reservedBytes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "unknownReason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why capacity is unknown, `not_configured` or `stale`."
+          },
+          "warning": {
+            "type": "boolean",
+            "description": "Free space minus reservations below the warning threshold, or capacity unknown."
+          }
+        }
+      },
+      "StoredPartDto": {
+        "type": "object",
+        "required": [
+          "partNumber",
+          "etag",
+          "sizeBytes"
+        ],
+        "properties": {
+          "etag": {
+            "type": "string"
+          },
+          "partNumber": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
       "TitleCard": {
         "type": "object",
         "required": [
@@ -1995,14 +3375,8 @@
             "type": "string"
           },
           "poster": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/ImageSet"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/ImageSet",
+            "description": "Left out when there is no ready image."
           },
           "year": {
             "type": [
@@ -2027,14 +3401,8 @@
         ],
         "properties": {
           "backdrop": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/ImageSet"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/ImageSet",
+            "description": "Left out when there is no ready image."
           },
           "credits": {
             "type": "array",
@@ -2078,14 +3446,8 @@
             ]
           },
           "poster": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/ImageSet"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/ImageSet",
+            "description": "Left out when there is no ready image."
           },
           "runtimeMinutes": {
             "type": [
@@ -2321,6 +3683,199 @@
               "null"
             ],
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TitleStorage": {
+        "type": "object",
+        "description": "Per-title storage and the editor's variant list (SPEC 7.10).",
+        "required": [
+          "variants"
+        ],
+        "properties": {
+          "variants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminVariant"
+            }
+          }
+        }
+      },
+      "TitleUsageDto": {
+        "type": "object",
+        "required": [
+          "titleId",
+          "name",
+          "bytes"
+        ],
+        "properties": {
+          "bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "titleId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "TitleUsagePage": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TitleUsageDto"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "UploadComplete": {
+        "type": "object",
+        "required": [
+          "parts"
+        ],
+        "properties": {
+          "parts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompletedPart"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "UploadStart": {
+        "type": "object",
+        "required": [
+          "fileName",
+          "sizeBytes"
+        ],
+        "properties": {
+          "durationSeconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Read from the file by the browser when it can, 10 s to 8 h, for the space estimate.",
+            "minimum": 0
+          },
+          "fileName": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "UploadStarted": {
+        "type": "object",
+        "required": [
+          "uploadId",
+          "partSize",
+          "partCount"
+        ],
+        "properties": {
+          "partCount": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "partSize": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "uploadId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "UploadState": {
+        "type": "object",
+        "description": "An upload with the parts Garage already holds, for resuming.",
+        "required": [
+          "uploadId",
+          "status",
+          "sizeBytes",
+          "partSize",
+          "partCount",
+          "parts"
+        ],
+        "properties": {
+          "partCount": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "partSize": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "parts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StoredPartDto"
+            }
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "status": {
+            "type": "string",
+            "description": "`initiated`, `completed` or `aborted`."
+          },
+          "uploadId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "VariantCreate": {
+        "type": "object",
+        "required": [
+          "titleId",
+          "language"
+        ],
+        "properties": {
+          "episodeId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Required for shows, absent for movies."
+          },
+          "language": {
+            "type": "string",
+            "description": "Content language, BCP 47, for example `it` or `pt-BR`.",
+            "maxLength": 35
+          },
+          "titleId": {
+            "type": "string",
+            "format": "uuid"
           }
         },
         "additionalProperties": false

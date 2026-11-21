@@ -1,0 +1,179 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select v.id, v.episode_id, v.language, v.status, v.duration_ms, v.ready_at,\n                  a.total_bytes as current_bytes,\n                  src.size_bytes as \"source_bytes?\",\n                  (src.id is not null) as \"source_kept!\",\n                  j.id as \"job_id?\", j.status as \"job_status?\", j.progress as job_progress,\n                  j.failure_detail as job_failure,\n                  open.id as \"open_upload_id?\"\n           from media_variants v\n           left join transcode_attempts a on a.id = v.current_attempt_id\n           left join lateral (\n             select u.id, u.size_bytes from uploads u\n             where u.variant_id = v.id and u.status = 'completed' and u.source_deleted_at is null\n             order by u.completed_at desc limit 1) src on true\n           left join lateral (\n             select u.id from uploads u\n             where u.variant_id = v.id and u.status = 'initiated' and u.expires_at > now()\n             order by u.created_at desc limit 1) open on true\n           left join lateral (\n             select j.id, j.status, j.progress, j.failure_detail from jobs j\n             where j.variant_id = v.id and j.kind = 'transcode'\n             order by j.created_at desc limit 1) j on true\n           where v.title_id = $1\n           order by v.episode_id nulls first, v.language",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "media_variants",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "episode_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "media_variants",
+            "name": "episode_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "language",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "media_variants",
+            "name": "language"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "media_variants",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "duration_ms",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "media_variants",
+            "name": "duration_ms"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "ready_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "media_variants",
+            "name": "ready_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "current_bytes",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "transcode_attempts",
+            "name": "total_bytes"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "source_bytes?",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "uploads",
+            "name": "size_bytes"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "source_kept!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "job_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "jobs",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "job_status?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jobs",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "job_progress",
+        "type_info": "Float4",
+        "origin": {
+          "Table": {
+            "table": "jobs",
+            "name": "progress"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "job_failure",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jobs",
+            "name": "failure_detail"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "open_upload_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "uploads",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      null,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "79d5e89a099b028f7945c3670c8373bd8eb0b61b0ac16ee214b55d11485acb2f"
+}

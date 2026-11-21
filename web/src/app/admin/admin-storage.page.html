@@ -1,0 +1,89 @@
+<h1>{{ 'admin.storage.heading' | transloco }}</h1>
+@if (error(); as key) {
+  <p class="error-text" role="alert">{{ key | transloco }}</p>
+}
+@if (overview(); as o) {
+  <section class="panel">
+    @if (o.capacityKnown) {
+      <p>
+        {{
+          'admin.storage.free'
+            | transloco: { free: bytes(o.logicalFreeBytes), reserved: bytes(o.reservedBytes) }
+        }}
+      </p>
+    } @else {
+      <p class="error-text">
+        {{ 'admin.storage.unknown.' + (o.unknownReason ?? 'stale') | transloco }}
+      </p>
+      <p>{{ 'admin.storage.reserved' | transloco: { reserved: bytes(o.reservedBytes) } }}</p>
+    }
+    @if (o.warning && o.capacityKnown) {
+      <p class="error-text" role="alert">{{ 'admin.banner.full' | transloco }}</p>
+    }
+    @if (o.degraded) {
+      <p class="error-text" role="alert">{{ 'admin.banner.degraded' | transloco }}</p>
+    }
+    @if (o.nodes.length) {
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">{{ 'admin.storage.node' | transloco }}</th>
+            <th scope="col">{{ 'admin.storage.data' | transloco }}</th>
+            <th scope="col">{{ 'admin.storage.metadata' | transloco }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (n of o.nodes; track n.node) {
+            <tr>
+              <td>
+                {{ n.node }}
+                @if (!n.fresh) {
+                  <span class="error-text">{{ 'admin.storage.stale' | transloco }}</span>
+                }
+              </td>
+              <td>{{ bytes(n.dataAvailBytes) }} / {{ bytes(n.dataTotalBytes) }}</td>
+              <td>{{ bytes(n.metaAvailBytes) }} / {{ bytes(n.metaTotalBytes) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+    <h2>{{ 'admin.storage.components' | transloco }}</h2>
+    <table class="table">
+      <tbody>
+        @for (c of o.components; track c.component + c.instance) {
+          <tr>
+            <td>{{ c.component }} {{ c.instance }}</td>
+            <td>
+              {{
+                (c.storageWritable ? 'admin.storage.writable' : 'admin.storage.notWritable')
+                  | transloco
+              }}
+              @if (!c.fresh) {
+                <span class="muted">{{ 'admin.storage.stale' | transloco }}</span>
+              }
+            </td>
+            <td>{{ c.encoder }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+}
+
+<h2>{{ 'admin.storage.titles' | transloco }}</h2>
+<table class="table">
+  <tbody>
+    @for (t of titles(); track t.titleId) {
+      <tr>
+        <td>
+          <a [routerLink]="['/admin/titles', t.titleId]">{{ t.name }}</a>
+        </td>
+        <td>{{ bytes(t.bytes) }}</td>
+      </tr>
+    }
+  </tbody>
+</table>
+@if (next()) {
+  <button class="btn" type="button" (click)="more()">{{ 'catalog.more' | transloco }}</button>
+}

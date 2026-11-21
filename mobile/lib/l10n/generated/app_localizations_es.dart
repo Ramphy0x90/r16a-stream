@@ -13,12 +13,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get appName => 'r16a-stream';
 
   @override
-  String get homeHeading => 'Bienvenido';
-
-  @override
-  String get homeComingSoon => 'Tu biblioteca aparecerá aquí.';
-
-  @override
   String get signInHeading => 'Inicia sesión en r16a-stream';
 
   @override
@@ -41,4 +35,88 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get signOut => 'Cerrar sesión';
+
+  @override
+  String get retry => 'Reintentar';
+
+  @override
+  String get loading => 'Cargando';
+
+  @override
+  String get catalogError => 'Algo salió mal. Inténtalo de nuevo.';
+
+  @override
+  String get catalogEmpty => 'Todavía no hay nada aquí.';
+
+  @override
+  String get searchHint => 'Buscar títulos';
+
+  @override
+  String get filterAll => 'Todos';
+
+  @override
+  String get filterGenre => 'Género';
+
+  @override
+  String get filterAllGenres => 'Todos los géneros';
+
+  @override
+  String get kindMovie => 'Película';
+
+  @override
+  String get kindShow => 'Serie';
+
+  @override
+  String get sortRecent => 'Añadidos recientemente';
+
+  @override
+  String get sortAz => 'De la A a la Z';
+
+  @override
+  String get titleMissing => 'Este título no existe o no está disponible.';
+
+  @override
+  String get creditsHeading => 'Reparto y equipo';
+
+  @override
+  String get episodesHeading => 'Episodios';
+
+  @override
+  String get specials => 'Especiales';
+
+  @override
+  String get noEpisodes => 'Todavía no hay episodios.';
+
+  @override
+  String get roleDirector => 'Dirección';
+
+  @override
+  String get roleCreator => 'Creación';
+
+  @override
+  String get roleWriter => 'Guion';
+
+  @override
+  String get roleCast => 'Reparto';
+
+  @override
+  String runtimeMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String seasonNumber(int number) {
+    return 'Temporada $number';
+  }
+
+  @override
+  String episodeNumber(int number) {
+    return 'Episodio $number';
+  }
+
+  @override
+  String get filterLanguage => 'Idioma';
+
+  @override
+  String get filterAllLanguages => 'Todos los idiomas';
 }

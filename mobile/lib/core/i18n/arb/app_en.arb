@@ -4,14 +4,6 @@
   "@appName": {
     "description": "Working name of the app, shown in the title bar."
   },
-  "homeHeading": "Welcome",
-  "@homeHeading": {
-    "description": "Heading of the home screen."
-  },
-  "homeComingSoon": "Your library will appear here.",
-  "@homeComingSoon": {
-    "description": "Placeholder text on the home screen until the catalog exists."
-  },
   "signInHeading": "Sign in to r16a-stream",
   "@signInHeading": {
     "description": "Heading of the sign-in screen."
@@ -39,5 +31,124 @@
   "signOut": "Sign out",
   "@signOut": {
     "description": "Action that signs the user out."
+  },
+  "retry": "Try again",
+  "@retry": {
+    "description": "Button that repeats a failed load."
+  },
+  "loading": "Loading",
+  "@loading": {
+    "description": "Screen reader label while content loads."
+  },
+  "catalogError": "Something went wrong. Please try again.",
+  "@catalogError": {
+    "description": "Shown when the catalog cannot be loaded."
+  },
+  "catalogEmpty": "Nothing here yet.",
+  "@catalogEmpty": {
+    "description": "Shown when no title matches."
+  },
+  "searchHint": "Search titles",
+  "@searchHint": {
+    "description": "Placeholder of the search field."
+  },
+  "filterAll": "All",
+  "@filterAll": {
+    "description": "Filter chip for movies and shows."
+  },
+  "filterGenre": "Genre",
+  "@filterGenre": {
+    "description": "Genre filter label."
+  },
+  "filterAllGenres": "All genres",
+  "@filterAllGenres": {
+    "description": "Genre filter option without a genre."
+  },
+  "kindMovie": "Movie",
+  "@kindMovie": {
+    "description": "A movie."
+  },
+  "kindShow": "Show",
+  "@kindShow": {
+    "description": "A TV show."
+  },
+  "sortRecent": "Recently added",
+  "@sortRecent": {
+    "description": "Sort order."
+  },
+  "sortAz": "A to Z",
+  "@sortAz": {
+    "description": "Sort order."
+  },
+  "titleMissing": "This title does not exist or is not available.",
+  "@titleMissing": {
+    "description": "Shown for an unknown title."
+  },
+  "creditsHeading": "Cast and crew",
+  "@creditsHeading": {
+    "description": "Heading of the credits."
+  },
+  "episodesHeading": "Episodes",
+  "@episodesHeading": {
+    "description": "Heading of the episode list."
+  },
+  "specials": "Specials",
+  "@specials": {
+    "description": "Season 0."
+  },
+  "noEpisodes": "No episodes yet.",
+  "@noEpisodes": {
+    "description": "Empty season."
+  },
+  "roleDirector": "Director",
+  "@roleDirector": {
+    "description": "Credit role."
+  },
+  "roleCreator": "Creator",
+  "@roleCreator": {
+    "description": "Credit role."
+  },
+  "roleWriter": "Writer",
+  "@roleWriter": {
+    "description": "Credit role."
+  },
+  "roleCast": "Cast",
+  "@roleCast": {
+    "description": "Credit role."
+  },
+  "runtimeMinutes": "{minutes} min",
+  "@runtimeMinutes": {
+    "description": "Runtime.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "seasonNumber": "Season {number}",
+  "@seasonNumber": {
+    "description": "Season label.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "episodeNumber": "Episode {number}",
+  "@episodeNumber": {
+    "description": "Episode without a name.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "filterLanguage": "Language",
+  "filterAllLanguages": "All languages",
+  "@filterLanguage": {
+    "description": "Label of the content language filter on the home grid."
+  },
+  "@filterAllLanguages": {
+    "description": "The choice that shows titles in every content language."
   }
 }

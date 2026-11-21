@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update uploads set status = 'completed', completed_at = now() where id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fcc3a179006372a55f0000cb781cd2919bacd2aef9baf565eb94c5b38fbec1fe"
+}

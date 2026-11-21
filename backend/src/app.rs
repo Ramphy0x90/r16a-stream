@@ -8,7 +8,7 @@ use axum::{
     http::{StatusCode, header},
     middleware,
     response::IntoResponse,
-    routing::{get, patch, post},
+    routing::{delete, get, patch, post},
 };
 use tower::ServiceBuilder;
 use tower_http::{
@@ -16,7 +16,7 @@ use tower_http::{
     sensitive_headers::SetSensitiveRequestHeadersLayer, timeout::TimeoutLayer,
 };
 
-use crate::{admin, auth, catalog, error, health, http, me, state::AppState, tmdb};
+use crate::{admin, auth, catalog, error, health, http, me, media, state::AppState, tmdb};
 
 /// Default limit for request bodies. Routes that need more set their own with
 /// `DefaultBodyLimit`, up to [`MAX_BODY_LIMIT`].
@@ -27,6 +27,37 @@ pub const MAX_BODY_LIMIT: usize = 2 * 1024 * 1024;
 
 pub fn router(state: AppState) -> Router {
     router_with(state, Router::new())
+}
+
+/// Variant, upload, subtitle, job and storage administration (SPEC 5.2, Phase 4).
+fn media_routes() -> Router<AppState> {
+    Router::new()
+        .route("/admin/variants", post(media::handlers::create_variant))
+        .route("/admin/variants/{id}", delete(media::handlers::delete_variant))
+        .route("/admin/variants/{id}/uploads", post(media::handlers::start_upload))
+        .route("/admin/variants/{id}/retranscode", post(media::handlers::retranscode))
+        .route("/admin/titles/{id}/storage", get(media::handlers::title_storage))
+        .route(
+            "/admin/uploads/{id}",
+            get(media::handlers::get_upload).delete(media::handlers::abort_upload),
+        )
+        .route("/admin/uploads/{id}/parts", post(media::handlers::part_urls))
+        .route(
+            "/admin/uploads/{id}/complete",
+            post(media::handlers::complete_upload).layer(DefaultBodyLimit::max(media::handlers::COMPLETE_BODY_LIMIT)),
+        )
+        .route("/admin/jobs", get(media::handlers::list_jobs))
+        .route("/admin/jobs/{id}", get(media::handlers::get_job))
+        .route("/admin/jobs/{id}/retry", post(media::handlers::retry_job))
+        .route("/admin/jobs/{id}/cancel", post(media::handlers::cancel_job))
+        .route("/admin/images", post(media::handlers::start_image_upload))
+        .route(
+            "/admin/variants/{id}/subtitles",
+            post(media::handlers::create_subtitle).layer(DefaultBodyLimit::max(media::handlers::SUBTITLE_BODY_LIMIT)),
+        )
+        .route("/admin/subtitles/{id}", delete(media::handlers::delete_subtitle))
+        .route("/admin/storage", get(media::handlers::storage))
+        .route("/admin/storage/titles", get(media::handlers::storage_titles))
 }
 
 /// Builds the app with extra routes mounted inside the full middleware stack. Tests use it to
@@ -84,7 +115,8 @@ pub fn router_with(state: AppState, extra: Router<AppState>) -> Router {
         .route(
             "/admin/episodes/{id}",
             patch(catalog::admin_handlers::update_episode).delete(catalog::admin_handlers::delete_episode),
-        );
+        )
+        .merge(media_routes());
     let timeout: Duration = state.config.request_timeout;
     let hsts = state.config.public_url.scheme() == "https";
 

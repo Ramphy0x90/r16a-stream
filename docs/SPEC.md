@@ -764,7 +764,7 @@ Legend: **C** caller (any signed-in user), **A** admin, **P** playback token in 
 | `GET /admin/uploads/{id}` | A | parts already stored, for resume |
 | `POST /admin/uploads/{id}/complete` | A | `{ parts: [{ partNumber, etag }] }`, body limit 256 KiB, enqueues the transcode |
 | `DELETE /admin/uploads/{id}` | A | abort |
-| `POST /admin/variants/{id}/subtitles` | A | raw `text/vtt` body, 2 MiB limit, query `language`, `label`, `kind` |
+| `POST /admin/variants/{id}/subtitles` | A | raw `text/vtt` body, 2 MiB limit, query `language`, `label`, `kind`. Staged in the uploads bucket, promoted to `s/<id>.vtt` by a `subtitle` job, the staged file deleted by the API afterwards |
 | `DELETE /admin/subtitles/{id}` | A | remove a track |
 | `POST /admin/images` | A | start a single-part multipart upload for a manual poster or backdrop |
 | `GET /admin/jobs?status&kind&cursor`, `GET /admin/jobs/{id}` | A | queue, progress, failure reason |
@@ -1102,7 +1102,7 @@ stateDiagram-v2
 3. **Probe.** `ffprobe -v error -protocol_whitelist file -format_whitelist <list> -show_format -show_streams -of json <path>`, 60 s timeout, output limited to 1 MiB. Rules: exactly one video stream used (the default or first), at least one audio stream, duration 10 s to 8 h, width and height up to 7680, frame rate up to 120. The audio stream whose language tag matches the variant language is preferred, otherwise the first.
 4. **Attempt.** Insert `transcode_attempts` with a new id and prefix `v/<variant>/<attempt>/`.
 5. **Encode.** One ffmpeg process decodes once, splits, scales and encodes every rung (section 7.4). `-progress pipe:1` drives `progress`. Wall clock limit `max(1 h, 4 x duration)` for x264, `max(30 min, 1 x duration)` for hardware backends.
-6. **Scrub sprites.** A second ffmpeg pass from the 360p output, one frame every 10 s, 160 px wide, tiled 10 x 10 into WebP sheets, plus `scrub.vtt` mapping time ranges to `sprite_<n>.webp#xywh=x,y,w,h`.
+6. **Scrub sprites.** In the same ffmpeg process as the encode, one more branch of the decoded video, one frame every 10 s, 160 px wide, tiled 10 x 10 into WebP sheets in `scrub/`, plus `scrub/scrub.vtt` mapping time ranges to `sprite_<n>.webp#xywh=x,y,w,h` (DECISIONS 081).
 7. **Capacity.** Sum the local output sizes. If `garage_capacity` (7.10) says the logical free space minus `R16A_STORAGE_MIN_FREE_BYTES` is smaller, requeue with `storage_full`. If the capacity rows are older than 10 minutes, write anyway, because the source reservation already covers the estimate.
 8. **Upload outputs.** Every file goes to the media bucket under the attempt prefix with an explicit `Content-Type` from an allowlist (section 10.4) and `Cache-Control: public, max-age=31536000, immutable`. Parallelism 8, each PUT retried with backoff. Any Garage failure ends the run as a storage requeue. Partially written prefixes are left for GC.
 9. **Verify.** List the attempt prefix back from Garage (ListObjectsV2) and compare every key and size with the local files, then GET each playlist and check it parses and names only files that exist. Any mismatch is a transient failure. On success record `total_bytes` and `verified_at`.
@@ -1229,7 +1229,7 @@ Failure is `507 insufficient_storage` with the needed and available numbers. A r
 No Rust image crate. ffmpeg already runs in the hardened worker, and reusing it keeps image decoding of untrusted files in the same sandbox (DECISIONS 017).
 
 As built in Phase 3b (DECISIONS 078):
-- The draft carries TMDB `posterPath` and `backdropPath`. Saving a title downloads them before the transaction, then writes the `images` row, its `image` job (`dedupe_key = image:<id>`, priority 10) and the title's image ids in one transaction, and `pg_notify('r16a_stream_jobs', 'image')` wakes a worker. A patch with a path replaces the image, `null` detaches it. Episode stills and manual image uploads follow in Phase 4 with the uploads table.
+- The draft carries TMDB `posterPath` and `backdropPath`. Saving a title downloads them before the transaction, then writes the `images` row, its `image` job (`dedupe_key = image:<id>`, priority 10) and the title's image ids in one transaction, and `pg_notify('r16a_stream_jobs', 'image')` wakes a worker. A patch with a path replaces the image, `null` detaches it. Manual posters, backdrops and episode stills (Phase 4) start with `POST /admin/images` `{kind, titleId | episodeId, sizeBytes <= 20 MiB, contentType}`, which returns one presigned part URL. Completing the upload through `/admin/uploads/{id}/complete` queues the image job and attaches the image to the title or episode. Episodes return `still` and the `languages` with a ready variant.
 - The worker probes before decoding and refuses above the limits, encodes AVIF (`libaom-av1 -still-picture 1 -crf 30 -cpu-used 6`) and WebP (`libwebp -quality 80`) per width with `scale=w:-2`, stores `Cache-Control: public, max-age=31536000, immutable`, and finishes in one transaction. A file that is not an image or is too large fails at once, a Garage problem requeues without counting, everything else retries after 1, 5, 25 minutes.
 - Every ffmpeg and ffprobe run gets `-protocol_whitelist file -format_whitelist image2,png_pipe,jpeg_pipe,webp_pipe`, an empty environment, its own process group, 60 s, and 1 MiB of captured output. `tests/images.rs` proves a playlist named `.jpg` that points at `file:///etc/passwd` is refused.
 
@@ -1344,7 +1344,7 @@ r16a-stream-uploads/
 r16a-stream-media/
   v/<variant>/<attempt>/v<height>/init.mp4, seg_<n>.m4s, index.m3u8
   v/<variant>/<attempt>/a/init.mp4, seg_<n>.m4s, index.m3u8
-  v/<variant>/<attempt>/scrub/sprite_<n>.webp, scrub.vtt
+  v/<variant>/<attempt>/scrub/sprite_<n>.webp, scrub/scrub.vtt
   i/<image>/<width>.avif, <width>.webp
   s/<subtitle>.vtt
   _health/worker-<pod>
@@ -1728,4 +1728,25 @@ Per-language metadata (`title_translations`), surround audio rendition, HEVC or 
 
 ## 24. Delivery plan
 
-Phases 0 to 9 exactly as in the brief. Each ends with a summary of what was done, what was verified by running it, conflicts found and open questions, then waits for approval.
+**This is the authoritative phase plan**, restated by the owner on 2026-11-21 after the original brief was lost to context compaction. Each phase ends with a summary of what was done, what was verified by running it, conflicts found and open questions, then waits for approval.
+
+| Phase | Scope |
+|---|---|
+| 0 | Spec |
+| 1 | Foundations |
+| 2 | Auth |
+| 3 | Catalog and admin content: titles, seasons, episodes, variants, manual entry and TMDB import, image pipeline |
+| 4 | Upload and transcoding: multipart, queue, worker, ladder, encoder backends, scrub sprites, encode GC, admin job view, degraded storage handling |
+| 5 | Playback: tokens, playlist rewriting, web and mobile players, language switch, progress and resume |
+| 6 | User features: like and dislike, favorites, lists, sharing, comments with visibility, moderation |
+| 7 | Requests: create, dedupe and upvote, my requests, admin queue |
+| 8 | i18n, settings, polish: all four languages, themes, accessibility pass, performance pass against the budgets |
+| 9 | Deployment: k8s manifests, build-and-deploy, `provision.sql`, backups, complete OPERATING.md |
+
+**Rule for every phase.** A feature is built for web and mobile in the same phase. Admin is the only exception, it is web only, and mobile never gets admin screens.
+
+Moved between phases with approval: manual image upload and episode stills from 3 to 4 (DECISIONS 078).
+
+Phase 4 status 2026-11-21: upload, admission, transcoding (x264, hardware backends with fallback), sprites, verification, switch, retention, encode GC, subtitles, manual images, admin web pages and the language filter on web and mobile are built (DECISIONS 081). Open: the two-node `garage_degraded` test, the ThinkStation encoder measurements (owner), and a browser CSP check of the signed-in admin pages.
+
+Proposed, not yet approved: variants (the language versions of a movie or episode) are listed under Phase 3 but not built. `media_variants` points at `transcode_attempts` and its status only moves through an upload and a transcode, so the proposal is to build variants together with Phase 4 (DECISIONS 080).

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update transcode_attempts set status = 'abandoned', finished_at = now()\n             where status = 'running' and job_id = any($1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ad273ded4d66dd44dcba532f780b6b62911e53c6a3c0d27ee667993e4dbbbb1e"
+}

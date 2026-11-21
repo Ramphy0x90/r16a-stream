@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update subtitle_tracks set status = 'failed' where id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0c9fee6059eb2dbb898d3cf3b83bd1711ef83d466420fbeea1f3dce96280a93b"
+}

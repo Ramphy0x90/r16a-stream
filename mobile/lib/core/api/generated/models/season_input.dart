@@ -24,15 +24,11 @@ class SeasonInput {
                 .toList()
           : null,
       name: json.containsKey("name") ? json["name"] as String? : null,
-      number: _readJsonInteger(json["number"]),
+      number: json["number"] as int,
       overview: json.containsKey("overview")
           ? json["overview"] as String?
           : null,
-      year: json.containsKey("year")
-          ? json["year"] == null
-                ? null
-                : _readJsonInteger(json["year"])
-          : null,
+      year: json.containsKey("year") ? json["year"] as int? : null,
     );
   }
 
@@ -62,14 +58,4 @@ class SeasonInput {
     if (this.overview != null) "overview": this.overview,
     if (this.year != null) "year": this.year,
   };
-}
-
-int _readJsonInteger(Object? value) {
-  if (value is int) {
-    return value;
-  }
-  if (value is double && value.isFinite && value == value.toInt()) {
-    return value.toInt();
-  }
-  throw FormatException('Expected a JSON integer.', value);
 }

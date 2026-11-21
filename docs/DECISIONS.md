@@ -516,13 +516,13 @@ The security-reviewer agent reviewed all auth code on 2026-11-20. It found the b
 Consequences: Tests cover each fix (`auth_web.rs`, `auth_bearer.rs`, mobile `token_manager_test.dart`, `auth_interceptor_test.dart`, `config_test.dart`). Mobile users see a consent screen on every sign-in, which with 30-day refresh tokens is rare.
 
 ### 076 Catalog in two parts, images in Phase 3b
-2026-11-20 · proposed, both parts built (078)
+2026-11-20 · accepted 2026-11-21, both parts built (078)
 Context: Phase 3 is the catalog and admin content. Images (posters, backdrops, stills) need the uploads table, the job queue and a worker job type, which SPEC builds for transcoding in Phase 4. Building those parts twice would split one design.
 Decision: Phase 3a delivers the catalog schema (with the image tables and the worker grants), browsing, search, the title page, admin editing with audit, the TMDB lookup, the web screens and the generated mobile models. Phase 3b adds the upload and job tables, TMDB image download into the uploads bucket, the worker image pipeline (SPEC 8.2), presigned image URLs per UTC day (8.3), and `seed --bench` with `docs/perf/queries.md` (4.10). Image fields in the API are null until then.
 Consequences: The API shape does not change in 3b, `poster`, `backdrop` and `still` are already in the schema as nullable.
 
 ### 077 Phase 3a implementation choices
-2026-11-20 · proposed
+2026-11-20 · accepted 2026-11-21
 - **Admin routes added to SPEC 5.2.** `GET /admin/titles`, `GET /admin/titles/{id}` (the editor needs drafts, which user-facing routes never show) and `POST /admin/genres` (manual titles need genres). Episode routes are `POST /admin/seasons/{id}/episodes`, `PATCH|DELETE /admin/episodes/{id}`.
 - **The TMDB draft is a `TitleInput`.** The lookup returns exactly the create body, so the admin edits and posts it back. Genres travel as `newGenres` with their TMDB id and are created on save. No genres are seeded, TMDB genre ids would have come from memory.
 - **Body limits.** The global `RequestBodyLimitLayer` is now the 2 MiB ceiling of the largest route, and `DefaultBodyLimit` stays 16 KiB for every route except `POST /admin/titles` and `POST /admin/titles/{id}/seasons`, which take 2 MiB. Tested with a 20 KiB patch (413) and a 400 episode show (201).
@@ -535,7 +535,7 @@ Consequences: The API shape does not change in 3b, `poster`, `backdrop` and `sti
 Consequences: Section B is updated accordingly.
 
 ### 078 Image pipeline and query tuning in Phase 3b
-2026-11-20 · proposed
+2026-11-20 · accepted 2026-11-21, including the move of manual image upload and episode stills to Phase 4
 - **Scope.** TMDB posters and backdrops, the `jobs` table (without its variant column, added with `media_variants` in Phase 4), the worker image pipeline, presigned image URLs, and `seed --bench`. Manual image uploads need the uploads table and its multipart flow and move to Phase 4, as do episode stills.
 - **Encoder settings.** AVIF with `libaom-av1 -still-picture 1 -crf 30 -cpu-used 6 -pix_fmt yuv420p`, WebP with `libwebp -quality 80`, both `-map_metadata -1`. Checked on Debian trixie's ffmpeg 7.1.5, which has both encoders, so the DECISIONS 018 check is done.
 - **Heights** are computed with ffmpeg's own rule for `scale=w:-2`, and `tests/images.rs` compares them with the real output.
@@ -544,6 +544,44 @@ Consequences: Section B is updated accordingly.
 - **tokio `process` feature** enabled for spawning ffmpeg. A feature of an approved crate, no new dependency.
 - **Search query rewritten.** The bench showed the CTE form could use neither GIN index (22 ms at 10 000 titles, linear). With the terms inline the planner combines both indexes, 0.04 ms for a rare word and 1.7 ms for a typo. The bench vacuums after seeding, because new GIN entries in the pending list hide the index from the planner. A future bulk import should end with `VACUUM (ANALYZE) titles` (docs/perf/queries.md).
 - **Replaced images** keep their rows and objects until encode GC (Phase 4) removes images no title references.
+
+### 079 Verified https redirect for mobile login, so consent can return to implicit
+2026-11-21 · proposed, not implemented until approved
+Context: The always-consent flow on the mobile providers (075) stops another Android app from catching the custom-scheme redirect, at the cost of one extra tap per sign-in. A verified Android App Link or iOS Universal Link on our own domain cannot be claimed by another app, the way Zaltys does it (`/.well-known/assetlinks.json` and `apple-app-site-association` served by the web container from `R16A_ANDROID_CERT_FINGERPRINTS` and `R16A_APPLE_APP_IDS`).
+What was checked on 2026-11-21:
+- **Consent is per provider, and Android and iOS share one.** Consent can go back to implicit only when the mobile provider accepts no custom-scheme redirect at all. If the custom scheme stays registered for either platform, a malicious Android app can still ask for it and get a silent code. So both platforms must move to https together.
+- **Android with our current library works.** `flutter_appauth` 13 uses AppAuth-Android 0.11.1, which documents https redirects by overriding `RedirectUriReceiverActivity` in the manifest, and `android:autoVerify="true"` makes it an App Link. Caveat: AppAuth uses Custom Tabs, not Chrome's Auth Tab, and a Custom Tab does not always hand a server-side redirect over to an App Link. The AppAuth README recommends a fallback page at the redirect URL for that case, which would have to pass the code on, reopening the problem it solves.
+- **iOS with our current library does not.** `flutter_appauth` 13 pins AppAuth-iOS 3.0.0, which builds `ASWebAuthenticationSession` with `callbackURLScheme` only (`OIDExternalUserAgentIOS.m`). An https callback needs the iOS 17.4 `ASWebAuthenticationSession.Callback.https(host:path:)` API, which AppAuth-iOS 3.0.0 does not call.
+- **`flutter_web_auth_2` does both.** It uses Chrome's Auth Tab on Android (an https callback is returned to the calling app by the browser itself, no App Link handover needed, Custom Tab fallback on old Chrome) and the iOS 17.4 https callback on iOS. Zaltys uses it at 5.1.0, the newest release older than 7 days, 6.0.0 is 2 days old.
+Options:
+1. **Keep always-consent (today).** No code change. One extra tap per sign-in, and sign-ins are rare with 30-day refresh tokens.
+2. **Android App Link with `flutter_appauth`, iOS keeps the custom scheme.** Does not allow dropping consent, see the first point. Not useful on its own.
+3. **Switch mobile sign-in to `flutter_web_auth_2` with an https redirect `https://<host>/app/oauth2redirect` on both platforms.** The app builds the authorization URL with PKCE, state and nonce itself and redeems the code with dio at the token endpoint, about 150 lines, the same protocol code as the backend's (070). `flutter_appauth` goes, `flutter_web_auth_2` 5.1.0 comes in (needs your approval as a dependency). The mobile providers register only the https redirect and go back to implicit consent. The web container serves both well-known files from env, empty lists associate no app. iOS minimum becomes 17.4. The release build's signing fingerprint and the Apple app id become deployment config (OPERATING 9).
+Trade-offs of option 3: one more piece of own protocol code to keep correct (mitigated by sharing the test approach of `tests/auth_*.rs`, a mock provider, and the checks the security review already applied), dependence on the browser honouring the verified association (Chrome 137+ for Auth Tab, otherwise Custom Tabs with the App Link), debug builds against a local API cannot use a verified link, so the dev provider keeps the custom scheme and always-consent, which is acceptable because no production tokens are involved, and an iOS 17.4 floor.
+Recommendation: option 3, built in Phase 9 together with the production host and signing keys, because the well-known files need the real domain and the release fingerprint to be verifiable at all. Until then option 1 stays.
+
+### 080 Variants with uploads in Phase 4
+2026-11-21 · proposed
+Context: The phase plan lists variants under Phase 3. A variant is one language of a movie or an episode, and its row (`media_variants`) points at its current transcode attempt, whose table, status machine and upload belong to Phase 4. In Phase 3 a variant could only ever be `awaiting_upload`.
+Decision proposed: build variants (admin create and delete, the title page languages, the language filter maintenance) together with uploads and transcoding in Phase 4, as their first step. Phase 3 is otherwise complete.
+Consequences: The admin can create titles, seasons and episodes now, and adds languages when uploading in Phase 4.
+Status 2026-11-21: built that way in Phase 4 while the proposal awaits approval. Undoing it would only move the same code back into the Phase 3 label.
+
+### 081 Upload, transcode and storage as built in Phase 4
+2026-11-21 · proposed, part of the Phase 4 review
+- **One decode, sprites included.** The encode feeds every rung, the audio rendition and the scrub sprites from one decoded stream (`split` into the rungs plus `fps=1/10,scale=160:-2,tile=10x10`). SPEC 7.3 step 6 described a second pass from the 360p output. One pass saves a full decode and keeps the HLS demuxer out of the format whitelist. The frames are the same.
+- **Output layout** follows SPEC 10.2 exactly: `v<height>/`, `a/` for audio, `scrub/` with `sprite_<n>.webp` and `scrub.vtt`, whose cues name the sheets relative to it.
+- **rustix 1.1.6** added (section B lists it) for `statvfs` and killing an encoder's process group. Published 2026-10-27, older than 7 days. Features `std`, `fs`, `process` only.
+- **Reservations follow the job.** A transcode reserves source plus ladder on upload start (7.10). The reservation ends with the job, whether it succeeds, fails for good or is cancelled, including a cancel of a queued job by the API. A retry of a failed transcode and a re-transcode reserve the ladder again through admission.
+- **The reaper** marks running attempts of requeued jobs `abandoned` and ends a job that was `cancelling` as `cancelled`, not queued.
+- **Switch checks ownership.** The switch transaction re-reads the job under lock and only proceeds while this worker still owns it and no cancel was asked. A worker that lost its job to the reaper ends without touching the variant.
+- **Retention re-check under lock.** Retention re-checks each candidate with the variant row locked, the lock re-transcode also takes, so a re-transcode queued meanwhile cannot lose its source. The lock is held across one Garage delete.
+- **Manual images** start as one-part multipart uploads, remember their target (poster, backdrop or still, title or episode) on the upload row (migration `20261121000002`), and are attached when the upload completes. An abandoned image upload removes its pending image row.
+- **Staged subtitles** are deleted by the API after the worker promoted or refused the track, tracked in `subtitle_tracks.staged_removed_at` (migration `20261121000003`), because only the API key may write the uploads bucket.
+- **Episodes** now carry their still and the languages with a ready variant. Deleting a variant removes a title language no other ready variant has.
+- **Hardware encoders** have pinned argument vectors and a one-frame test at start with x264 fallback. The quality settings (`-global_quality 23`) are placeholders until the ThinkStation measurements of SPEC 7.5, which are the owner's to run.
+- **Mobile language names** are autonyms (`Italiano`), because Flutter has no counterpart of `Intl.DisplayNames`. The web uses names in the UI language.
+- **Encode GC** walks the media bucket with delimiter listings one level at a time and never deletes a key it cannot parse.
 
 ---
 
@@ -581,7 +619,7 @@ Consequences: Section B is updated accordingly.
 | base64 | 0.23.1 | needs approval | tokens and cursors |
 | url | 2.5.8 | needs approval | safe URL building, `serde` feature for the discovery document |
 | bytes, futures-util, tokio-util | 1.12.1, 0.3.34, 0.7.20 | needs approval | streaming bodies to and from Garage |
-| rustix | 1.1.6 | needs approval | `statvfs` for the scratch space check, process group kill |
+| rustix | 1.1.6 | added 2026-11-21 (081), features `std`, `fs`, `process` | `statvfs` for the scratch space check, process group kill |
 | dotenvy | 0.15.7 | needs approval | `backend/.env` in debug builds only, as Zaltys |
 | tempfile | 3.27.0 | needs approval, dev only | test scratch dirs |
 
@@ -620,7 +658,7 @@ Node 26.13.1 LTS.
 | flutter_secure_storage | 11.2.0 | brief | token storage |
 | intl, flutter_localizations | 0.20.3, SDK | brief (gen-l10n) | i18n, `intl` pinned to what the SDK's `flutter_localizations` pins |
 | flutter_appauth | 13.0.0 | needs approval | native authorization code with PKCE in the system browser |
-| cached_network_image | 4.0.7 | needs approval | disk image cache (043) |
+| cached_network_image | 4.0.7 | approved, added in Phase 3 | disk image cache keyed on the object key, decode at display size (043) |
 | shared_preferences | 2.5.6 | needs approval | theme, UI language, non-secret prefs |
 | wakelock_plus | 1.8.2 | needs approval | keep the screen on while playing |
 | material_ui, cupertino_ui | 1.11.0, 1.1.6 | approved 2026-11-20 (069) | Material and Cupertino widgets and their localization delegates, moved out of the SDK in Flutter 3.47 |

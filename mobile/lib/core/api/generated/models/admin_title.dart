@@ -3,12 +3,13 @@
 import 'admin_season.dart';
 import 'credit.dart';
 import 'genre.dart';
-import 'title_detail_poster.dart';
+import 'image_set.dart';
 import 'title_kind.dart';
 
 /// Everything an admin edits on one title, drafts included.
 class AdminTitle {
   const AdminTitle({
+    /// Left out when there is no ready image.
     this.backdrop,
     required this.credits,
     required this.genres,
@@ -17,6 +18,8 @@ class AdminTitle {
     required this.name,
     this.originalName,
     this.overview,
+
+    /// Left out when there is no ready image.
     this.poster,
     this.runtimeMinutes,
     required this.seasons,
@@ -28,9 +31,7 @@ class AdminTitle {
 
   factory AdminTitle.fromJson(Map<String, Object?> json) => AdminTitle(
     backdrop: json.containsKey("backdrop")
-        ? json["backdrop"] == null
-              ? null
-              : AdminTitleBackdrop.fromJson(json["backdrop"])
+        ? ImageSet.fromJson(json["backdrop"] as Map<String, Object?>)
         : null,
     credits: (json["credits"] as List<Object?>)
         .map((item) => Credit.fromJson(item as Map<String, Object?>))
@@ -46,36 +47,25 @@ class AdminTitle {
         : null,
     overview: json.containsKey("overview") ? json["overview"] as String? : null,
     poster: json.containsKey("poster")
-        ? json["poster"] == null
-              ? null
-              : AdminTitlePoster.fromJson(json["poster"])
+        ? ImageSet.fromJson(json["poster"] as Map<String, Object?>)
         : null,
     runtimeMinutes: json.containsKey("runtimeMinutes")
-        ? json["runtimeMinutes"] == null
-              ? null
-              : _readJsonInteger(json["runtimeMinutes"])
+        ? json["runtimeMinutes"] as int?
         : null,
     seasons: (json["seasons"] as List<Object?>)
         .map((item) => AdminSeason.fromJson(item as Map<String, Object?>))
         .toList(),
     status: json["status"] as String,
-    tmdbId: json.containsKey("tmdbId")
-        ? json["tmdbId"] == null
-              ? null
-              : _readJsonInteger(json["tmdbId"])
-        : null,
-    year: json.containsKey("year")
-        ? json["year"] == null
-              ? null
-              : _readJsonInteger(json["year"])
-        : null,
+    tmdbId: json.containsKey("tmdbId") ? json["tmdbId"] as int? : null,
+    year: json.containsKey("year") ? json["year"] as int? : null,
     additionalProperties: {
       for (final entry in json.entries)
         if (!_knownKeys.contains(entry.key)) entry.key: entry.value,
     },
   );
 
-  final AdminTitleBackdrop? backdrop;
+  /// Left out when there is no ready image.
+  final ImageSet? backdrop;
 
   final List<Credit> credits;
 
@@ -91,7 +81,8 @@ class AdminTitle {
 
   final String? overview;
 
-  final AdminTitlePoster? poster;
+  /// Left out when there is no ready image.
+  final ImageSet? poster;
 
   final int? runtimeMinutes;
 
@@ -140,14 +131,4 @@ class AdminTitle {
     if (this.tmdbId != null) "tmdbId": this.tmdbId,
     if (this.year != null) "year": this.year,
   };
-}
-
-int _readJsonInteger(Object? value) {
-  if (value is int) {
-    return value;
-  }
-  if (value is double && value.isFinite && value == value.toInt()) {
-    return value.toInt();
-  }
-  throw FormatException('Expected a JSON integer.', value);
 }

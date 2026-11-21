@@ -10,6 +10,7 @@ import {
   type TitlePatch,
 } from '../core/catalog/admin-catalog.service';
 import { Picture } from '../shared/picture/picture';
+import { MediaPanel } from './media/media-panel';
 import { problemKey } from './admin-title-new.page';
 
 type Editable = 'name' | 'originalName' | 'overview' | 'year' | 'runtimeMinutes';
@@ -17,7 +18,7 @@ type Editable = 'name' | 'originalName' | 'overview' | 'year' | 'runtimeMinutes'
 /** Edits one title, its publication, and its seasons and episodes. */
 @Component({
   selector: 'app-admin-title-edit-page',
-  imports: [RouterLink, TranslocoPipe, Picture],
+  imports: [RouterLink, TranslocoPipe, Picture, MediaPanel],
   templateUrl: './admin-title-edit.page.html',
   styleUrl: './admin.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -47,6 +48,11 @@ export class AdminTitleEditPage {
         next: (t) => this.title.set(t),
         error: (e: unknown) => this.error.set(problemKey(e)),
       });
+  }
+
+  /** Reloads after a change made elsewhere, such as an image upload in the media panel. */
+  refresh(): void {
+    this.reload();
   }
 
   private reload(): void {

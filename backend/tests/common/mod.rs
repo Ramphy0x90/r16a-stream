@@ -100,7 +100,10 @@ pub fn state_with(pool: PgPool, vars: &HashMap<&'static str, String>) -> AppStat
         r16a_stream_backend::images::ingest::TmdbImages::new(cfg.tmdb.image_base_url.clone(), false).expect("images");
     let image_urls =
         r16a_stream_backend::images::urls::ImageUrls::new(&cfg.s3_public_endpoint, &cfg.s3).expect("image urls");
+    let upload_urls =
+        r16a_stream_backend::storage::public::UploadUrls::new(&cfg.s3_public_endpoint, &cfg.s3).expect("upload urls");
     AppState {
+        upload_urls: Arc::new(upload_urls),
         config: Arc::new(cfg),
         db: pool,
         storage: Arc::new(storage),

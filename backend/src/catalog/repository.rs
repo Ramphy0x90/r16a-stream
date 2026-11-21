@@ -274,9 +274,12 @@ pub struct EpisodeRow {
     pub overview: Option<String>,
     pub runtime_minutes: Option<i32>,
     pub air_date: Option<Date>,
+    pub still_image_id: Option<Uuid>,
+    /// Content languages with a ready variant.
+    pub languages: Vec<String>,
 }
 
-/// H9 without languages yet. `None` when the title is not published or the season does not exist.
+/// H9. `None` when the title is not published or the season does not exist.
 pub async fn published_season_episodes(
     db: &PgPool,
     title_id: Uuid,
@@ -295,8 +298,10 @@ pub async fn published_season_episodes(
     };
     let rows = sqlx::query_as!(
         EpisodeRow,
-        "select id, season_id, number, name, overview, runtime_minutes, air_date
-         from episodes where season_id = $1 order by number",
+        r#"select e.id, e.season_id, e.number, e.name, e.overview, e.runtime_minutes, e.air_date, e.still_image_id,
+                  array(select v.language from media_variants v
+                        where v.episode_id = e.id and v.status = 'ready' order by v.language) as "languages!"
+           from episodes e where e.season_id = $1 order by e.number"#,
         season_id
     )
     .fetch_all(db)
@@ -308,8 +313,10 @@ pub async fn published_season_episodes(
 pub async fn all_episodes(db: &PgPool, title_id: Uuid) -> Result<Vec<EpisodeRow>, sqlx::Error> {
     sqlx::query_as!(
         EpisodeRow,
-        "select id, season_id, number, name, overview, runtime_minutes, air_date
-         from episodes where title_id = $1 order by number",
+        r#"select e.id, e.season_id, e.number, e.name, e.overview, e.runtime_minutes, e.air_date, e.still_image_id,
+                  array(select v.language from media_variants v
+                        where v.episode_id = e.id and v.status = 'ready' order by v.language) as "languages!"
+           from episodes e where e.title_id = $1 order by e.number"#,
         title_id
     )
     .fetch_all(db)

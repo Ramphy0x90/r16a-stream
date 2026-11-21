@@ -449,6 +449,9 @@ pub struct TitleCard {
     pub kind: TitleKind,
     pub name: String,
     pub year: Option<i16>,
+    /// Left out when there is no ready image.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
     pub poster: Option<ImageSet>,
 }
 
@@ -493,7 +496,13 @@ pub struct TitleDetail {
     pub seasons: Vec<SeasonSummary>,
     /// Content languages with at least one ready variant.
     pub languages: Vec<String>,
+    /// Left out when there is no ready image.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
     pub poster: Option<ImageSet>,
+    /// Left out when there is no ready image.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
     pub backdrop: Option<ImageSet>,
 }
 
@@ -509,6 +518,9 @@ pub struct Episode {
     pub air_date: Option<String>,
     /// Content languages with a ready variant. Filled once variants exist (Phase 4).
     pub languages: Vec<String>,
+    /// Left out when there is no ready image.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
     pub still: Option<ImageSet>,
 }
 
@@ -570,6 +582,10 @@ pub struct AdminEpisode {
     pub runtime_minutes: Option<i32>,
     #[schema(format = Date)]
     pub air_date: Option<String>,
+    /// Left out when there is no ready image.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    pub still: Option<ImageSet>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -599,7 +615,13 @@ pub struct AdminTitle {
     pub genres: Vec<Genre>,
     pub credits: Vec<Credit>,
     pub seasons: Vec<AdminSeason>,
+    /// Left out when there is no ready image.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
     pub poster: Option<ImageSet>,
+    /// Left out when there is no ready image.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
     pub backdrop: Option<ImageSet>,
 }
 

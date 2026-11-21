@@ -43,7 +43,7 @@ class TitlePatch {
           ? json["genreIds"] == null
                 ? null
                 : (json["genreIds"] as List<Object?>)
-                      .map((item) => _readJsonInteger(item))
+                      .map((item) => item as int)
                       .toList()
           : null,
       name: json.containsKey("name") ? json["name"] as String? : null,
@@ -67,15 +67,9 @@ class TitlePatch {
           ? json["posterPath"] as String?
           : null,
       runtimeMinutes: json.containsKey("runtimeMinutes")
-          ? json["runtimeMinutes"] == null
-                ? null
-                : _readJsonInteger(json["runtimeMinutes"])
+          ? json["runtimeMinutes"] as int?
           : null,
-      year: json.containsKey("year")
-          ? json["year"] == null
-                ? null
-                : _readJsonInteger(json["year"])
-          : null,
+      year: json.containsKey("year") ? json["year"] as int? : null,
     );
   }
 
@@ -128,14 +122,4 @@ class TitlePatch {
     if (this.runtimeMinutes != null) "runtimeMinutes": this.runtimeMinutes,
     if (this.year != null) "year": this.year,
   };
-}
-
-int _readJsonInteger(Object? value) {
-  if (value is int) {
-    return value;
-  }
-  if (value is double && value.isFinite && value == value.toInt()) {
-    return value.toInt();
-  }
-  throw FormatException('Expected a JSON integer.', value);
 }

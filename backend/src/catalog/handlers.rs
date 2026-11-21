@@ -120,7 +120,7 @@ pub async fn episodes(
     headers: HeaderMap,
     ApiPath((id, number)): ApiPath<(Uuid, i16)>,
 ) -> Result<Response, AppError> {
-    let list = service::season_episodes(&state.db, id, number).await?;
+    let list = service::season_episodes(&state.db, &state.image_urls, id, number).await?;
     json_with_etag(&headers, &list)
 }
 

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update jobs set status = 'cancelled', finished_at = now()\n         where kind = 'subtitle' and status = 'queued' and payload ->> 'subtitleId' = $1::uuid::text",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "58a9866aa4b1791579c2b7cfa70d9a9c1adea3948ffc9449df6d7ef6bb90f401"
+}

@@ -13,12 +13,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appName => 'r16a-stream';
 
   @override
-  String get homeHeading => 'Welcome';
-
-  @override
-  String get homeComingSoon => 'Your library will appear here.';
-
-  @override
   String get signInHeading => 'Sign in to r16a-stream';
 
   @override
@@ -41,4 +35,88 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get signOut => 'Sign out';
+
+  @override
+  String get retry => 'Try again';
+
+  @override
+  String get loading => 'Loading';
+
+  @override
+  String get catalogError => 'Something went wrong. Please try again.';
+
+  @override
+  String get catalogEmpty => 'Nothing here yet.';
+
+  @override
+  String get searchHint => 'Search titles';
+
+  @override
+  String get filterAll => 'All';
+
+  @override
+  String get filterGenre => 'Genre';
+
+  @override
+  String get filterAllGenres => 'All genres';
+
+  @override
+  String get kindMovie => 'Movie';
+
+  @override
+  String get kindShow => 'Show';
+
+  @override
+  String get sortRecent => 'Recently added';
+
+  @override
+  String get sortAz => 'A to Z';
+
+  @override
+  String get titleMissing => 'This title does not exist or is not available.';
+
+  @override
+  String get creditsHeading => 'Cast and crew';
+
+  @override
+  String get episodesHeading => 'Episodes';
+
+  @override
+  String get specials => 'Specials';
+
+  @override
+  String get noEpisodes => 'No episodes yet.';
+
+  @override
+  String get roleDirector => 'Director';
+
+  @override
+  String get roleCreator => 'Creator';
+
+  @override
+  String get roleWriter => 'Writer';
+
+  @override
+  String get roleCast => 'Cast';
+
+  @override
+  String runtimeMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String seasonNumber(int number) {
+    return 'Season $number';
+  }
+
+  @override
+  String episodeNumber(int number) {
+    return 'Episode $number';
+  }
+
+  @override
+  String get filterLanguage => 'Language';
+
+  @override
+  String get filterAllLanguages => 'All languages';
 }

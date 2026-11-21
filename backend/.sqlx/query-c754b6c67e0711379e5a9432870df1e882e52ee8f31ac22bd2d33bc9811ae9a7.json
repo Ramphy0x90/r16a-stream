@@ -1,0 +1,45 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select data_avail, replication, checked_at > now() - interval '10 minutes' as \"recent!\"\n           from garage_capacity",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "data_avail",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "garage_capacity",
+            "name": "data_avail"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "replication",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "garage_capacity",
+            "name": "replication"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "recent!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "c754b6c67e0711379e5a9432870df1e882e52ee8f31ac22bd2d33bc9811ae9a7"
+}

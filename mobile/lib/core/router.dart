@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/auth/sign_in_screen.dart';
 import '../features/home/home_screen.dart';
+import '../features/title/title_screen.dart';
 import 'auth/auth_controller.dart';
 
 /// App routes. Screens navigate with `context.go()` and `context.pop()` only.
@@ -25,7 +26,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       };
     },
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
+      GoRoute(
+        path: '/',
+        builder: (context, state) => const HomeScreen(),
+        routes: [
+          // A child of home, so back returns to the grid where the user left it.
+          GoRoute(
+            path: 'title/:id',
+            builder: (context, state) =>
+                TitleScreen(id: state.pathParameters['id'] ?? ''),
+          ),
+        ],
+      ),
       GoRoute(
         path: '/signin',
         builder: (context, state) => const SignInScreen(),

@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select status from jobs where id = $1 and locked_by = $2 for update",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jobs",
+            "name": "status"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e4158bf675a26605429d24b81fdd44f423eb8955079684c5739b0887fa9c1c7e"
+}

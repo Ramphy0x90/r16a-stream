@@ -39,7 +39,8 @@
       "type": "Art",
       "genre": "Genre",
       "sort": "Sortierung",
-      "all": "Alle"
+      "all": "Alle",
+      "language": "Sprache"
     },
     "sort": {
       "recent": "Zuletzt hinzugefügt",
@@ -123,6 +124,109 @@
       "note": "Bilder werden beim Speichern geladen und erscheinen, sobald sie verarbeitet sind.",
       "removePoster": "Poster entfernen",
       "removeBackdrop": "Hintergrund entfernen"
+    },
+    "media": {
+      "heading": "Sprachen und Medien",
+      "language": "Sprache",
+      "episode": "Folge",
+      "addLanguage": "Sprache hinzufügen",
+      "size": "Größe",
+      "actions": "Aktionen",
+      "encode": "Kodierung",
+      "source": "Quelle",
+      "resume": "Upload fortsetzen",
+      "pause": "Pausieren",
+      "abort": "Upload abbrechen",
+      "retranscode": "Neu transkodieren",
+      "sourceGone": "Die Quelle wurde nach dem Transkodieren gelöscht. Lade die Datei erneut hoch, um neu zu kodieren.",
+      "addSubtitle": "Untertitel hinzufügen",
+      "subtitleLanguage": "Sprache der Untertitel",
+      "subtitleKind": "Art der Untertitel",
+      "kind": {
+        "subtitles": "Untertitel",
+        "captions": "Für Hörgeschädigte",
+        "forced": "Erzwungen"
+      },
+      "none": "Noch keine Sprachen. Füge eine hinzu und lade dann ihr Video hoch.",
+      "images": "Bilder",
+      "uploadPoster": "Poster hochladen",
+      "uploadBackdrop": "Hintergrund hochladen",
+      "uploadStill": "Standbild hochladen",
+      "imageUploading": "Bild wird hochgeladen…",
+      "imageQueued": "Das Bild ist hochgeladen und erscheint nach der Verarbeitung.",
+      "resumeMismatch": "Das ist nicht die Datei des unterbrochenen Uploads. Wähle dieselbe Datei oder brich den Upload ab.",
+      "noSpace": "Nicht genug Speicher. Dieser Upload braucht {{needed}}, frei sind {{available}}.",
+      "busy": "Für diese Sprache läuft bereits ein Upload oder eine Transkodierung.",
+      "uploadFailed": "Der Upload ist fehlgeschlagen. Wähle die Datei erneut, um fortzusetzen.",
+      "state": {
+        "awaiting_upload": "Wartet auf Video",
+        "processing": "In Arbeit",
+        "ready": "Bereit",
+        "failed": "Fehlgeschlagen"
+      },
+      "upload": {
+        "pick": "Video hochladen",
+        "starting": "Startet…",
+        "uploading": "Wird hochgeladen",
+        "paused": "Pausiert, der Speicher ist beeinträchtigt",
+        "completing": "Wird abgeschlossen…",
+        "done": "Hochgeladen, Transkodierung geplant",
+        "failed": "Upload fehlgeschlagen",
+        "refused": "Upload abgelehnt",
+        "cancelled": "Pausiert, wähle die Datei erneut, um fortzusetzen"
+      }
+    },
+    "jobs": {
+      "heading": "Aufträge",
+      "all": "Alle",
+      "kind": "Art",
+      "created": "Erstellt",
+      "detail": "Details",
+      "retry": "Erneut versuchen",
+      "cancel": "Abbrechen",
+      "none": "Keine Aufträge.",
+      "attempts": "Versuch {{n}} von {{max}}, {{waits}}-mal auf Speicher gewartet",
+      "status": {
+        "queued": "Geplant",
+        "running": "Läuft",
+        "cancelling": "Wird abgebrochen",
+        "succeeded": "Fertig",
+        "failed": "Fehlgeschlagen",
+        "cancelled": "Abgebrochen"
+      },
+      "kinds": {
+        "transcode": "Transkodierung",
+        "image": "Bild",
+        "subtitle": "Untertitel",
+        "encode_gc": "Speicherbereinigung"
+      },
+      "blocked": {
+        "storage_degraded": "Wartet, bis der Speicher wieder schreibt",
+        "storage_full": "Wartet auf freien Speicher",
+        "scratch_full": "Wartet auf Platz auf dem Worker"
+      }
+    },
+    "storage": {
+      "heading": "Speicher",
+      "free": "{{free}} frei, {{reserved}} für laufende Uploads reserviert",
+      "reserved": "{{reserved}} für laufende Uploads reserviert",
+      "unknown": {
+        "not_configured": "Freier Speicher unbekannt, die Garage-Metriken sind nicht eingerichtet.",
+        "stale": "Freier Speicher unbekannt, die Garage-Metriken sind veraltet."
+      },
+      "node": "Knoten",
+      "data": "Daten frei / gesamt",
+      "metadata": "Metadaten frei / gesamt",
+      "stale": "(veraltet)",
+      "components": "Schreibzustand",
+      "writable": "Schreiben funktioniert",
+      "notWritable": "Schreiben schlägt fehl",
+      "titles": "Größte Titel"
+    },
+    "banner": {
+      "degraded": "Der Speicher ist beeinträchtigt. Uploads und Transkodierungen pausieren, die Wiedergabe funktioniert weiter.",
+      "full": "Der Speicher ist fast voll.",
+      "unknown": "Die Speicherkapazität ist unbekannt, bis die Garage-Metriken eingerichtet sind."
     }
   }
 }

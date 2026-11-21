@@ -39,7 +39,8 @@
       "type": "Type",
       "genre": "Genre",
       "sort": "Sort",
-      "all": "All"
+      "all": "All",
+      "language": "Language"
     },
     "sort": {
       "recent": "Recently added",
@@ -123,6 +124,109 @@
       "note": "Images are downloaded when you save and appear once they are processed.",
       "removePoster": "Remove poster",
       "removeBackdrop": "Remove backdrop"
+    },
+    "media": {
+      "heading": "Languages and media",
+      "language": "Language",
+      "episode": "Episode",
+      "addLanguage": "Add language",
+      "size": "Size",
+      "actions": "Actions",
+      "encode": "Encode",
+      "source": "Source",
+      "resume": "Resume upload",
+      "pause": "Pause",
+      "abort": "Abort upload",
+      "retranscode": "Transcode again",
+      "sourceGone": "The source was deleted after transcoding. Upload the file again to re-encode.",
+      "addSubtitle": "Add subtitles",
+      "subtitleLanguage": "Subtitle language",
+      "subtitleKind": "Subtitle kind",
+      "kind": {
+        "subtitles": "Subtitles",
+        "captions": "Captions",
+        "forced": "Forced"
+      },
+      "none": "No languages yet. Add one, then upload its video.",
+      "images": "Images",
+      "uploadPoster": "Upload poster",
+      "uploadBackdrop": "Upload backdrop",
+      "uploadStill": "Upload still",
+      "imageUploading": "Uploading the image…",
+      "imageQueued": "The image is uploaded and appears once it is processed.",
+      "resumeMismatch": "This is not the file of the interrupted upload. Pick the same file, or abort the upload.",
+      "noSpace": "Not enough storage. This upload needs {{needed}}, {{available}} are free.",
+      "busy": "An upload or transcode is already in progress for this language.",
+      "uploadFailed": "The upload failed. Pick the file again to resume.",
+      "state": {
+        "awaiting_upload": "Waiting for video",
+        "processing": "Processing",
+        "ready": "Ready",
+        "failed": "Failed"
+      },
+      "upload": {
+        "pick": "Upload video",
+        "starting": "Starting…",
+        "uploading": "Uploading",
+        "paused": "Paused, storage is degraded",
+        "completing": "Finishing…",
+        "done": "Uploaded, transcode queued",
+        "failed": "Upload failed",
+        "refused": "Upload refused",
+        "cancelled": "Paused, pick the file again to resume"
+      }
+    },
+    "jobs": {
+      "heading": "Jobs",
+      "all": "All",
+      "kind": "Kind",
+      "created": "Created",
+      "detail": "Details",
+      "retry": "Retry",
+      "cancel": "Cancel",
+      "none": "No jobs.",
+      "attempts": "Attempt {{n}} of {{max}}, {{waits}} storage waits",
+      "status": {
+        "queued": "Queued",
+        "running": "Running",
+        "cancelling": "Cancelling",
+        "succeeded": "Done",
+        "failed": "Failed",
+        "cancelled": "Cancelled"
+      },
+      "kinds": {
+        "transcode": "Transcode",
+        "image": "Image",
+        "subtitle": "Subtitles",
+        "encode_gc": "Storage cleanup"
+      },
+      "blocked": {
+        "storage_degraded": "Waiting for storage to accept writes",
+        "storage_full": "Waiting for free storage",
+        "scratch_full": "Waiting for worker disk space"
+      }
+    },
+    "storage": {
+      "heading": "Storage",
+      "free": "{{free}} free, {{reserved}} reserved for running uploads",
+      "reserved": "{{reserved}} reserved for running uploads",
+      "unknown": {
+        "not_configured": "Free space is unknown, Garage metrics are not configured.",
+        "stale": "Free space is unknown, Garage metrics are out of date."
+      },
+      "node": "Node",
+      "data": "Data free / total",
+      "metadata": "Metadata free / total",
+      "stale": "(out of date)",
+      "components": "Write health",
+      "writable": "Writes work",
+      "notWritable": "Writes fail",
+      "titles": "Largest titles"
+    },
+    "banner": {
+      "degraded": "Storage is degraded. Uploads and transcodes are paused, playback keeps working.",
+      "full": "Storage is almost full.",
+      "unknown": "Storage capacity is unknown until the Garage metrics are configured."
     }
   }
 }

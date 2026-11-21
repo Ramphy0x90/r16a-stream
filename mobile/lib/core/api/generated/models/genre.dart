@@ -13,7 +13,7 @@ class Genre {
   });
 
   factory Genre.fromJson(Map<String, Object?> json) => Genre(
-    id: _readJsonInteger(json["id"]),
+    id: json["id"] as int,
     name: json["name"] as String,
     slug: json["slug"] as String,
     additionalProperties: {
@@ -41,14 +41,4 @@ class Genre {
     "name": this.name,
     "slug": this.slug,
   };
-}
-
-int _readJsonInteger(Object? value) {
-  if (value is int) {
-    return value;
-  }
-  if (value is double && value.isFinite && value == value.toInt()) {
-    return value.toInt();
-  }
-  throw FormatException('Expected a JSON integer.', value);
 }

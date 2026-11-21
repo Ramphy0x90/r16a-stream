@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update uploads set source_deleted_at = now() where id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "41bf192e0829894d5f87122d21694c2f6a813daa94440f3461319760d6422efd"
+}

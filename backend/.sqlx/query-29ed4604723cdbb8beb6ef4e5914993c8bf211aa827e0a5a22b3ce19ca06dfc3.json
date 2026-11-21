@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select 1 as \"one!\" from media_variants where id = $1 for share",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "one!",
+        "type_info": "Int4",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "29ed4604723cdbb8beb6ef4e5914993c8bf211aa827e0a5a22b3ce19ca06dfc3"
+}

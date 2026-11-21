@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update transcode_attempts set status = $2, finished_at = now() where id = $1 and status = 'running'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3149d948f3d21f88a8528cbbc80a5582c58076fa4347aca9146a6edb41be9e81"
+}
