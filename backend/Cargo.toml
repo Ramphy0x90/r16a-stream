@@ -27,7 +27,7 @@ jsonwebtoken = { version = "12.0.0", default-features = false, features = ["rust
 rand = { version = "0.10.3", default-features = false, features = ["std", "sys_rng"] }
 reqwest = { version = "0.13.5", default-features = false, features = ["rustls-no-provider", "http2", "stream"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
-rusty-s3 = "0.11.0"
+rusty-s3 = "0.12.0"
 # statvfs for the scratch space check and killing an encoder's process group (SPEC 7.3, DECISIONS B).
 rustix = { version = "1.1.6", default-features = false, features = ["std", "fs", "process"] }
 secrecy = "0.10.3"
