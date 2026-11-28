@@ -34,7 +34,7 @@ EXPOSE 8081
 ENTRYPOINT ["/api"]
 CMD ["serve"]
 
-FROM debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2 AS worker
+FROM debian:trixie-slim@sha256:8aa5a7bf5a1955bddbe7d74fcdd0b91ab30e74362a8b73af672b0481b35b44a0 AS worker
 # ffmpeg from Debian trixie (7.1), the version the pipeline is written and tested against.
 # Security fixes newer than the pinned base are pulled with upgrade. CI passes the commit SHA as
 # APT_REFRESH, so this layer is rebuilt on every build instead of reusing a stale cache.
