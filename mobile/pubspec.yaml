@@ -21,7 +21,7 @@ dependencies:
   go_router: 18.1.4
   # Pinned by flutter_localizations of the SDK in use.
   intl: 0.20.3
-  material_ui: 1.11.0
+  material_ui: 1.11.1
 
 dev_dependencies:
   flutter_test:
