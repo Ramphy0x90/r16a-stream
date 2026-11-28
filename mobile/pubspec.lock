@@ -702,18 +702,18 @@ packages:
     dependency: "direct dev"
     description:
       name: swagger_parser
-      sha256: "9ab3018749081b1fbc6764b2d06787215a048a6d96d23fdc8ee638df22720413"
+      sha256: "7041a4c9051d54319dd1f820b0918296462b3df2456da6347d78ae0ba67126bf"
       url: "https://pub.dev"
     source: hosted
-    version: "2.1.1"
+    version: "2.4.0"
   swagger_parser_core:
     dependency: transitive
     description:
       name: swagger_parser_core
-      sha256: "96377d37a2029991c5d8ab1eb22bf62fef4dedf7dfe507fd6113b259c1eb38b4"
+      sha256: "62dcff2e4fe0ab1d7d847fab8f80a93dd35424ba035aa266e3a54393c88496ef"
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.4"
+    version: "1.1.0"
   synchronized:
     dependency: transitive
     description:
